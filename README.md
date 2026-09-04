@@ -75,6 +75,22 @@ crea igual, con `db/create_readonly_role.sql` contra su propia base.
 
 ## Notas de seguridad
 
+- **El contenido de las tablas si pasa por el modelo.** Solo lectura evita
+  que se escriba, no evita que los resultados de un `SELECT` salgan de la
+  red de la empresa hacia la API del proveedor de IA. Es una decision de
+  gobierno de datos de cada equipo, no algo que este plugin resuelva por si
+  solo — confirma con seguridad/cumplimiento si aplica antes de usarlo
+  contra datos sensibles o de produccion.
+- Para tareas que no necesitan ver contenido real (ej. comparar si dos
+  sistemas registran lo mismo para una misma entidad), preferir escribir el
+  query de forma que devuelva el veredicto/diferencias agregadas
+  (`COUNT`, `IS DISTINCT FROM`, hashes) en vez de las filas completas —
+  reduce lo que efectivamente le llega al modelo.
+- **Pon fecha de caducidad al rol** (`ALTER ROLE ... VALID UNTIL`). Lo que
+  queda "abierto para siempre" si no se hace nada no es una conexion TCP —
+  es la credencial. El servidor MCP solo abre conexiones mientras la sesion
+  esta activa; la credencial en cambio sigue siendo valida hasta que alguien
+  la revoque, a menos que tenga fecha de vencimiento.
 - Nunca reutilices la cuenta de la aplicacion — normalmente tiene permisos
   de escritura.
 - Nunca pongas el connection string en `.mcp.json` ni en ningun archivo
