@@ -1,46 +1,72 @@
 # postgres-readonly-mcp
 
-Plugin de Claude Code para dar acceso de **solo lectura** a bases PostgreSQL,
-sin reconfigurar el servidor MCP en cada proyecto. Pensado para analisis de
-esquema, auditorias y extraccion de DDL antes de pasar cosas a produccion,
-sin riesgo de escribir por accidente.
+Plugin de Claude Code que le da a Claude acceso **de solo lectura** a una
+base PostgreSQL — ninguna escritura es posible, reforzado en dos capas
+independientes. Pensado para auditorias de esquema, exploracion de datos y
+extraer DDL/configuracion antes de una migracion a produccion, sin riesgo de
+escribir por accidente.
 
-Protege en dos capas independientes:
+Se instala una vez por maquina y luego se habilita en cualquier proyecto
+pegando un connection string — sin reconfigurar el MCP en cada repo.
 
-1. **Rol de base de datos con `GRANT SELECT` unicamente** (ver `db/create_readonly_role.sql`).
-   Es la capa que de verdad importa: aunque el cliente MCP tuviera un bug,
-   la base rechaza cualquier escritura.
-2. **[postgres-mcp](https://github.com/crystaldba/postgres-mcp) en `--access-mode=restricted`**,
-   que ademas bloquea a nivel de parser SQL cualquier sentencia de escritura,
-   `COMMIT`/`ROLLBACK` incluidos.
+## Como se mantiene de solo lectura
+
+```mermaid
+flowchart LR
+    A[Claude Code] -->|MCP stdio| B[postgres-mcp<br/>--access-mode=restricted]
+    B -->|SQL parseado: escrituras<br/>y COMMIT/ROLLBACK rechazados| C[(PostgreSQL)]
+    C -->|rol: solo SELECT<br/>CREATE revocado| C
+
+    style B fill:#2d5,stroke:#333
+    style C fill:#48f,stroke:#333
+```
+
+Dos capas, para que un bug en una no importe:
+
+1. **Rol de base de datos con `GRANT SELECT` unicamente** — ver
+   [`db/create_readonly_role.sql`](db/create_readonly_role.sql). Es la capa
+   que de verdad importa: aunque el cliente MCP tuviera un bug, la base
+   rechaza cualquier escritura.
+2. **[postgres-mcp](https://github.com/crystaldba/postgres-mcp) en
+   `--access-mode=restricted`** — rechaza sentencias de escritura y
+   `COMMIT`/`ROLLBACK` a nivel de parser SQL, antes de que lleguen a la base.
 
 ## Por que un venv local y no `uvx`/`npx -y`
 
-En redes corporativas con inspeccion TLS (Netskope, CrowdStrike, etc.) las
-descargas "al vuelo" de paquetes pueden fallar de forma intermitente o
-romper la verificacion de hashes de pip. Este plugin instala una vez un
-entorno virtual local con versiones fijadas (`postgres-mcp==0.3.0`, `mcp<2`
-por un conflicto de dependencias conocido) y lo reutiliza en cada sesion.
+En redes con inspeccion TLS (proxys corporativos, agentes EDR), las
+descargas de paquetes al vuelo pueden fallar de forma intermitente o romper
+la verificacion de hashes de pip. Este plugin instala una vez un entorno
+virtual local con versiones fijadas (`postgres-mcp==0.3.0`, `mcp<2` — fijado
+para evitar un conflicto de dependencias con versiones mas nuevas de `mcp`)
+y lo reutiliza en cada sesion, en vez de resolver paquetes por red en cada
+arranque.
 
 ## Uso
 
-1. Clona este repo una sola vez por maquina.
-2. Corre `scripts/setup.ps1` (crea el venv local, una sola vez por maquina).
-3. Crea un rol de solo lectura en la base que quieras consultar con
-   `db/create_readonly_role.sql` (adaptalo al esquema de esa base) y
-   **verifica** que de verdad no pueda escribir (el script incluye los
-   queries de verificacion al final).
-4. En cualquier proyecto de Claude Code, habilita el plugin y pega la
-   connection URI del rol de solo lectura cuando se te pida
-   (`postgresql://usuario:password@host:puerto/basededatos`). Se guarda
-   de forma segura (Keychain / credentials file), no en texto plano en el repo.
+1. Clona este repo una vez por maquina.
+2. Corre `scripts/setup.ps1` (crea el venv local — una sola vez por maquina).
+3. Crea un rol de solo lectura en la base destino con
+   [`db/create_readonly_role.sql`](db/create_readonly_role.sql), adaptado a
+   los esquemas de esa base. **Verifica que no pueda escribir** — el script
+   termina con los queries exactos para comprobarlo.
+4. En cualquier proyecto de Claude Code, habilita el plugin y pega el
+   connection string del rol de solo lectura cuando se te pida
+   (`postgresql://usuario:password@host:puerto/basededatos`). Se guarda de
+   forma segura (keychain del sistema / archivo de credenciales), nunca en
+   un archivo versionado.
 
-## Seguridad
+## Notas de seguridad
 
-- Nunca uses la cuenta de la aplicacion (suele tener permisos de escritura).
-- Nunca pongas la connection URI directamente en `.mcp.json` o en cualquier
-  archivo versionado — siempre via el prompt de `userConfig` del plugin.
-- Revisa `db/create_readonly_role.sql`: incluye el fix para la trampa de
-  Postgres donde el esquema `public` concede `CREATE` a `PUBLIC` por defecto
-  en versiones anteriores a la 15 (si no se revoca, el rol "solo lectura"
-  igual podria crear tablas).
+- Nunca reutilices la cuenta de la aplicacion — normalmente tiene permisos
+  de escritura.
+- Nunca pongas el connection string en `.mcp.json` ni en ningun archivo
+  versionado — siempre a traves del prompt de `userConfig` del plugin.
+- Lee [`db/create_readonly_role.sql`](db/create_readonly_role.sql): incluye
+  el fix de una trampa clasica de Postgres — en versiones anteriores a la
+  15, el esquema `public` concede `CREATE` a `PUBLIC` por defecto, asi que
+  un rol "de solo lectura" igual podria crear tablas si no se revoca ese
+  privilegio de forma explicita.
+
+## Licencia
+
+MIT
