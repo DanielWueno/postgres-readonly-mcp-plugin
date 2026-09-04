@@ -1,6 +1,6 @@
 -- Crea un rol de solo lectura para usar con el MCP de Postgres.
--- Reemplaza los valores entre <> y ejecuta como un usuario con privilegios
--- suficientes (owner de los esquemas o superuser) contra la base destino.
+-- Reemplazar los valores entre <> y ejecutar contra la base destino con un
+-- usuario que tenga privilegios suficientes (owner de los esquemas o superuser).
 --
 -- Incluye el fix de la trampa clasica de Postgres: en versiones anteriores a
 -- la 15, el esquema "public" concede CREATE a PUBLIC por defecto, lo que le
