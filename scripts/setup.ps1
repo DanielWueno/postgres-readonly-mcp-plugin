@@ -1,12 +1,13 @@
-# Preparacion unica por maquina: crea el venv y deja el servidor listo,
-# para que el primer arranque del MCP no dependa de instalar paquetes al vuelo.
+# Preparacion unica por maquina: crea el entorno virtual y deja el servidor
+# listo, de forma que el primer arranque del MCP no dependa de instalar
+# paquetes en tiempo de ejecucion.
 $ErrorActionPreference = "Stop"
 
 $root = Split-Path -Parent $PSScriptRoot
 $venv = Join-Path $root ".venv"
 
 if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
-    Write-Error "No se encontro 'python' en PATH. Instala Python 3.10+ antes de continuar."
+    Write-Error "No se encontro 'python' en PATH. Se requiere Python 3.10 o superior."
     exit 1
 }
 
@@ -21,6 +22,8 @@ if (-not (Test-Path "$venv\Scripts\postgres-mcp.exe")) {
 }
 
 Write-Host ""
-Write-Host "Listo. En Claude Code, habilita el plugin 'postgres-readonly-mcp' y pega tu"
-Write-Host "connection URI de solo lectura (postgresql://usuario:password@host:puerto/bd)."
-Write-Host "Ese usuario DEBE crearse con db/create_readonly_role.sql -- nunca uses la cuenta de la app."
+Write-Host "Instalacion completa. Para activarlo, habilitar el plugin"
+Write-Host "'postgres-readonly-mcp' en Claude Code e ingresar el connection URI"
+Write-Host "de solo lectura correspondiente (postgresql://usuario:password@host:puerto/bd)."
+Write-Host "Ese usuario debe crearse con db/create_readonly_role.sql; no debe"
+Write-Host "reutilizarse la cuenta de la aplicacion."

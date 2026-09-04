@@ -29,7 +29,7 @@ GRANT CONNECT ON DATABASE :db_name TO :role_name;
 -- REVOKE CREATE ON SCHEMA "<esquema>" FROM :role_name;
 -- REVOKE CREATE ON SCHEMA "<esquema>" FROM PUBLIC;
 
--- Verificacion obligatoria despues de crear el rol (conectado YA como el rol nuevo):
+-- Verificacion obligatoria despues de crear el rol (conexion establecida con el rol recien creado):
 --   SELECT count(*) FROM information_schema.tables WHERE table_schema = '<esquema>';  -- debe funcionar
 --   CREATE TABLE <esquema>.__ro_probe(id int);                                        -- debe fallar
 --   INSERT INTO <esquema>.<alguna_tabla> DEFAULT VALUES;                              -- debe fallar
