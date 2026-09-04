@@ -55,6 +55,24 @@ arranque.
    forma segura (keychain del sistema / archivo de credenciales), nunca en
    un archivo versionado.
 
+## Proyectos que usan varias bases a la vez
+
+El `userConfig` del plugin cubre el caso simple: un proyecto, una base. Para
+proyectos que combinan varias bases (o varios ambientes), no reconfigures el
+plugin — registra un servidor MCP por base, en alcance local del proyecto,
+reutilizando el mismo venv que ya instalaste:
+
+```bash
+claude mcp add pg-ro-<alias> -s local \
+  -e DATABASE_URI=postgresql://usuario:password@host:puerto/basededatos \
+  -- "<ruta-al-repo-del-plugin>\.venv\Scripts\postgres-mcp.exe" --access-mode=restricted
+```
+
+Repite con un `<alias>` distinto por cada base (ej. `pg-ro-xafsuite`,
+`pg-ro-facturacion`). Todas comparten el mismo venv y el mismo modo
+restringido; solo cambia el connection string. Cada rol de solo lectura se
+crea igual, con `db/create_readonly_role.sql` contra su propia base.
+
 ## Notas de seguridad
 
 - Nunca reutilices la cuenta de la aplicacion — normalmente tiene permisos
