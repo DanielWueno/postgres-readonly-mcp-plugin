@@ -50,7 +50,12 @@ sesión, en lugar de resolver paquetes por red en cada arranque.
 
 ## Instalación y uso
 
-1. Clonar este repositorio una vez por máquina.
+1. Instalar el plugin una vez por máquina:
+   ```
+   /plugin marketplace add DanielWueno/dweno-forge
+   /plugin install postgres-readonly-mcp@dweno-forge
+   ```
+   Alternativa sin marketplace: clonar este repositorio directamente.
 2. Ejecutar `scripts/setup.ps1` (crea el entorno virtual local — una sola
    vez por máquina).
 3. Crear un rol de solo lectura en la base destino con
