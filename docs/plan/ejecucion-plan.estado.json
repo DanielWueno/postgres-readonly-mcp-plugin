@@ -1,0 +1,248 @@
+{
+  "_leeme": "Ledger de ejecución del plan de ingeniería. Fuente de verdad del avance: sobrevive al reinicio del límite de sesión, a un /clear y a cerrar la terminal. Se avanza con /arnes-plan:plan-siguiente o `bash \"$ARNES/plan-run.sh\"` (un ítem por invocación, commit al final); `claude plugin list` dice dónde quedó instalado el arnés. Estados: pendiente | en_curso | hecho | bloqueado | descartado. Guía: el README del plugin. POLÍTICA DE ESTE REPO (main protegido, enforce_admins: true -- nadie pushea directo, ni el dueño): cada ítem se ejecuta en su propia rama nueva desde main, se abre un PR, y se acepta el merge propio de ese PR antes de pasar al ítem siguiente -- nunca se commitea directo sobre main. El bump de versión (CHANGELOG.md + plugin.json) y el tag de release NO van item por item: se hacen una sola vez, al final, ya con todo lo demás mergeado a main -- así la versión publicada nunca describe un estado a medio camino.",
+  "schema_version": 1,
+  "_moneda": "horas_maquina = tiempo que toma CORRER la comprobación de cada ítem (el verificacion_comando si existe, o repetir a mano los pasos de verificacion si no) -- no el tiempo de implementarlo, eso ya lo indica 'esfuerzo'. Este repo no tiene CI, así que ese tiempo lo gasta el propio autor, a mano, cada vez que cierra un ítem.",
+  "olas": [
+    {
+      "ola": 1,
+      "nombre": "Red de seguridad y reproducibilidad: fuera el mecanismo viejo, probado el nuevo",
+      "criterio_de_entrada": "Ninguno. Es la primera.",
+      "criterio_de_salida": "El registro automático global (venv + userConfig.database_uri) ya no existe, y el mecanismo nuevo (uvx) arranca solo en esta máquina, antes de construir ningún comando encima.",
+      "items": [
+        {
+          "id": "1.1-quitar-registro-global",
+          "titulo": "El plugin instalado globalmente ya no registra ninguna conexión: plugin.json no declara mcpServers ni userConfig, y .mcp.json de la raíz del repo no existe",
+          "modelo": "sonnet",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "plugin.json no debe tener las claves mcpServers ni userConfig; el archivo .mcp.json de la raíz del repo debe haber sido borrado.",
+          "verificacion_comando": "! grep -q '\"mcpServers\"' .claude-plugin/plugin.json && ! grep -q '\"userConfig\"' .claude-plugin/plugin.json && [ ! -f .mcp.json ]",
+          "horas_maquina": 0.02,
+          "estado": "hecho",
+          "por_que_este_modelo": "Es edición mecánica de dos archivos pequeños; sonnet alcanza, no hace falta opus.",
+          "archivos": ".claude-plugin/plugin.json, .mcp.json (se borra)",
+          "rollback": "git revert del commit de este ítem restaura .mcp.json y las claves borradas en plugin.json.",
+          "resultado": "Se eliminaron las claves mcpServers y userConfig de .claude-plugin/plugin.json y se borró .mcp.json de la raíz. Verificado con el verificacion_comando literal del ítem: salió con exit 0 (ninguna clave presente, archivo ausente)."
+        },
+        {
+          "id": "1.2-smoke-test-uvx",
+          "titulo": "uvx --from postgres-mcp==0.3.0 --with \"mcp<2\" postgres-mcp --access-mode=restricted --help arranca sin error en esta máquina, antes de construir comandos sobre ese mecanismo",
+          "modelo": "haiku",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "El comando corre y termina con código 0, probando que uv/uvx están disponibles y que el pin de versión (postgres-mcp==0.3.0, mcp<2) resuelve sin conflicto de dependencias.",
+          "verificacion_comando": "uvx --from postgres-mcp==0.3.0 --with \"mcp<2\" postgres-mcp --access-mode=restricted --help",
+          "horas_maquina": 0.05,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Solo corre un comando y lee el código de salida -- no hay criterio de diseño que decidir.",
+          "archivos": "Ninguno -- es una prueba de humo, no toca código.",
+          "rollback": "No aplica: no cambia ningún archivo. Si falla, el ítem se marca bloqueado hasta resolver el pin de versión o instalar uv, no se revierte nada."
+        },
+        {
+          "id": "1.3-borrar-venv-scripts",
+          "titulo": "scripts/setup.ps1 y scripts/run.cmd (bootstrap del venv obsoleto) ya no existen en el repo",
+          "modelo": "haiku",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "Ningún archivo scripts/setup.ps1 ni scripts/run.cmd en el árbol del repo.",
+          "verificacion_comando": "[ ! -f scripts/setup.ps1 ] && [ ! -f scripts/run.cmd ]",
+          "horas_maquina": 0.02,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Es borrar dos archivos ya obsoletos -- no requiere juicio de diseño.",
+          "archivos": "scripts/setup.ps1 (se borra), scripts/run.cmd (se borra)",
+          "rollback": "git revert del commit de este ítem los restaura."
+        }
+      ]
+    },
+    {
+      "ola": 2,
+      "nombre": "Los comandos del flujo por proyecto, dentro y fuera de Claude Code",
+      "criterio_de_entrada": "Ola 1 cerrada: mecanismo uvx probado y registro global viejo eliminado.",
+      "criterio_de_salida": "Un usuario puede sembrar, listar, quitar y diagnosticar conexiones por proyecto, opcionalmente generar el rol de solo lectura con protecciones básicas (timeout, aviso de datos sensibles), y descubrir todo esto sin salir del chat ni ir a leer el README -- y puede hacer exactamente lo mismo desde una terminal normal con `pgro`, sin que Claude Code esté siquiera abierto. Ningún secreto pasa nunca por la conversación con el modelo.",
+      "items": [
+        {
+          "id": "2.1-script-sembrar",
+          "titulo": "scripts/sembrar.js agrega una entrada pg-ro-<alias> a .mcp.json del proyecto actual, con env.DATABASE_URI=\"${PGRO_<PROYECTO>_<ALIAS>}\" y sin aceptar ningún valor de secreto como argumento o entrada",
+          "modelo": "sonnet",
+          "esfuerzo": "medium",
+          "multiagente": false,
+          "verificacion": "Corriendo `node scripts/sembrar.js <alias>` en un directorio de prueba, .mcp.json queda con una entrada pg-ro-<alias> cuyo command es uvx y cuyo env.DATABASE_URI es la referencia de variable (no un valor real); el script nunca lee ni imprime nada que parezca una cadena de conexión real; el nombre de variable incorpora algo derivado del proyecto para no chocar entre repos. Si .mcp.json ya tenía otras entradas mcpServers ajenas a este plugin, quedan intactas tras sembrar. Corriendo sembrar dos veces con el mismo alias, la segunda actualiza esa misma entrada en vez de duplicarla o fallar en silencio. La escritura es atómica (a un archivo temporal + rename), de forma que interrumpir el proceso a la mitad no deja .mcp.json corrupto o a medio escribir.",
+          "horas_maquina": 0.15,
+          "estado": "pendiente",
+          "por_que_este_modelo": "El criterio de diseño real (nombre de variable sin choques entre proyectos, nunca tocar el secreto) es el trabajo, no un chequeo mecánico.",
+          "archivos": "scripts/sembrar.js (nuevo)",
+          "rollback": "Borrar scripts/sembrar.js. Si ya se corrió sobre un .mcp.json real de algún proyecto, restaurar ese archivo desde git en ese repo."
+        },
+        {
+          "id": "2.2-comando-sembrar",
+          "titulo": "commands/sembrar.md expone /postgres-readonly-mcp:sembrar, pide solo un alias y ejecuta scripts/sembrar.js, imprimiendo las dos líneas listas para copiar (perfil y setx) con el nombre de variable ya resuelto, explicado en lenguaje llano y sin asumir que quien lo corre ya sabe qué es una variable de entorno o para qué sirve",
+          "modelo": "sonnet",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "El comando existe con frontmatter description, invoca scripts/sembrar.js vía ${CLAUDE_PLUGIN_ROOT}, y no contiene ningún texto que le pida al usuario pegar la cadena de conexión en el chat. La salida explica en lenguaje sin jerga qué acaba de pasar (se preparó la conexión, falta un paso tuyo) y qué es exactamente lo que hay que hacer con las dos líneas que imprime -- no asume que quien lee ya sabe qué es una variable de entorno, un perfil de PowerShell, o setx.",
+          "verificacion_comando": "[ -f commands/sembrar.md ] && grep -q 'sembrar.js' commands/sembrar.md",
+          "horas_maquina": 0.02,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Es un wrapper delgado sobre el script del ítem anterior.",
+          "archivos": "commands/sembrar.md (nuevo)",
+          "rollback": "Borrar commands/sembrar.md."
+        },
+        {
+          "id": "2.3-listar",
+          "titulo": "scripts/listar.js + commands/listar.md muestran solo las conexiones pg-ro-* del .mcp.json del proyecto actual, nunca las de otro proyecto",
+          "modelo": "sonnet",
+          "esfuerzo": "medium",
+          "multiagente": false,
+          "verificacion": "Corriendo el comando en un proyecto con conexiones sembradas, lista únicamente los alias de ESE .mcp.json -- no lee ni menciona configuración de ningún otro proyecto ni de ~/.claude.json global.",
+          "horas_maquina": 0.15,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Lectura y formateo simple, pero el límite de 'solo este proyecto' es una decisión que vale la pena revisar con criterio.",
+          "archivos": "scripts/listar.js (nuevo), commands/listar.md (nuevo)",
+          "rollback": "Borrar ambos archivos."
+        },
+        {
+          "id": "2.4-quitar",
+          "titulo": "scripts/quitar.js + commands/quitar.md eliminan una conexión pg-ro-<alias> del .mcp.json del proyecto actual, dejando el resto de las conexiones intacto",
+          "modelo": "sonnet",
+          "esfuerzo": "medium",
+          "multiagente": false,
+          "verificacion": "Con dos alias sembrados en el mismo proyecto, quitar uno deja el otro sin cambios en .mcp.json, y el comando avisa si el alias pedido no existe en vez de fallar en silencio. Si .mcp.json tenía otras entradas mcpServers ajenas a este plugin, quedan intactas. La escritura es atómica (a un archivo temporal + rename), igual que sembrar.js.",
+          "horas_maquina": 0.15,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Edición de JSON con un caso de error a manejar (alias inexistente) -- no trivial pero tampoco requiere opus.",
+          "archivos": "scripts/quitar.js (nuevo), commands/quitar.md (nuevo)",
+          "rollback": "Borrar ambos archivos. Si ya se corrió sobre un .mcp.json real, restaurar desde git en ese repo."
+        },
+        {
+          "id": "2.5-comando-crear-rol",
+          "titulo": "commands/crear-rol.md imprime en la consola -- no en un archivo que el usuario tenga que ir a buscar -- el SQL adaptado a los esquemas indicados junto con una explicación en lenguaje llano de qué es un rol de solo lectura, por qué importa, y los pasos concretos para ejecutarlo (con qué herramienta, dónde pegarlo), sin asumir que quien lee ya sabe qué es psql o un rol de base de datos; el SQL generado fija statement_timeout en el rol y la explicación advierte que 'solo lectura' evita daño a la base pero NO evita que datos sensibles (PII, etc.) terminen expuestos en una conversación con un modelo, recomendando excluir columnas/tablas sensibles del GRANT; nunca se conecta a ninguna base ni pide credenciales, y advierte explícitamente que es responsabilidad del usuario correrlo solo contra desarrollo",
+          "modelo": "sonnet",
+          "esfuerzo": "medium",
+          "multiagente": false,
+          "verificacion": "El comando pide únicamente nombres de esquema, nunca una URI ni contraseña. Toda la salida -- SQL, explicación y pasos -- se imprime directo en la consola del chat, no se escribe a un archivo nuevo que el usuario deba localizar. La explicación cubre, en lenguaje sin jerga: qué es este rol y para qué sirve, por qué debe ser de solo lectura, qué programa usar para ejecutar el SQL (ej. psql o el cliente gráfico que ya tenga) y los pasos exactos para pegarlo y correrlo ahí. El SQL generado incluye un ALTER ROLE ... SET statement_timeout con un valor conservador documentado (y por qué ese valor). La explicación nombra explícitamente que el modo solo-lectura no protege contra exposición de datos sensibles en la conversación, y sugiere revisar qué columnas/tablas entran en el GRANT antes de correrlo. Incluye una advertencia visible de 'esto es solo para desarrollo, corrélo vos mismo'. No incluye ninguna invocación a psql ni a un driver de conexión desde el propio comando, y es opcional (el flujo de sembrar/listar/quitar no depende de haberlo corrido).",
+          "verificacion_comando": "[ -f commands/crear-rol.md ] && ! grep -qiE 'DATABASE_URI|password=' commands/crear-rol.md && grep -qi 'statement_timeout' commands/crear-rol.md",
+          "horas_maquina": 0.2,
+          "estado": "pendiente",
+          "por_que_este_modelo": "La advertencia, el límite de qué NO debe hacer el comando, el valor de timeout razonable, y explicar esto para alguien sin trasfondo técnico son decisiones de diseño, no un chequeo mecánico.",
+          "archivos": "commands/crear-rol.md (nuevo)",
+          "rollback": "Borrar commands/crear-rol.md."
+        },
+        {
+          "id": "2.6-comando-doctor",
+          "titulo": "scripts/doctor.js + commands/doctor.md revisan, en el proyecto actual: si uv/uvx está disponible, qué conexiones pg-ro-* hay sembradas en .mcp.json, y si la variable de entorno de cada una está seteada en la sesión actual -- señalando 'variable sin setear' (se ve como el literal ${VAR} sin resolver) como primer sospechoso antes que cualquier otra causa, explicado en lenguaje llano y no como un log técnico",
+          "modelo": "sonnet",
+          "esfuerzo": "medium",
+          "multiagente": false,
+          "verificacion": "Corriendo el comando en un proyecto de prueba con una conexión sembrada cuya variable NO está seteada, la salida identifica esa conexión puntual como la causa probable de un fallo, en una frase en lenguaje llano que no requiere leer un stack trace ni saber qué es una expansión de variable. Corriendo el comando sin uv instalado (o simulando su ausencia), avisa eso como bloqueante antes que cualquier otra cosa, con el paso concreto para instalarlo. No requiere que ninguna base de datos esté realmente accesible para dar un diagnóstico útil.",
+          "horas_maquina": 0.2,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Diagnosticar y priorizar cuál de varias causas posibles es la más probable es una decisión de diseño, no una lectura mecánica de estado.",
+          "archivos": "scripts/doctor.js (nuevo), commands/doctor.md (nuevo)",
+          "rollback": "Borrar ambos archivos."
+        },
+        {
+          "id": "2.7-comando-ayuda",
+          "titulo": "commands/ayuda.md expone /postgres-readonly-mcp:ayuda e imprime, sin salir del chat, qué hace el plugin y los cinco comandos disponibles (sembrar, listar, quitar, doctor, crear-rol) con una línea de qué hace cada uno y el orden recomendado de uso, para no depender de ir a leer el README",
+          "modelo": "haiku",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "Corriendo el comando, la salida nombra los cinco comandos con una descripción de una línea cada uno y el orden recomendado (crear-rol opcional -> sembrar -> vos configurás tu variable -> listar/quitar/doctor para mantenerlo). No requiere haber sembrado ninguna conexión ni tener uv instalado para funcionar -- es solo texto.",
+          "verificacion_comando": "[ -f commands/ayuda.md ] && grep -q 'sembrar' commands/ayuda.md && grep -q 'listar' commands/ayuda.md && grep -q 'quitar' commands/ayuda.md && grep -q 'doctor' commands/ayuda.md && grep -qi 'crear-rol' commands/ayuda.md",
+          "horas_maquina": 0.02,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Es texto estático que resume comandos ya definidos en ítems anteriores -- no hay diseño nuevo que decidir.",
+          "archivos": "commands/ayuda.md (nuevo)",
+          "rollback": "Borrar commands/ayuda.md."
+        },
+        {
+          "id": "2.8-atajo-terminal-pgro",
+          "titulo": "commands/atajo.md instala `pgro` en ~/.local/bin (con envoltorio .cmd para Windows, igual que el atajo `arnes`), un lanzador con subcomandos (pgro sembrar/listar/quitar/doctor/crear-rol/ayuda) que despacha directo a los scripts de esta ola, para usarlos desde una terminal normal sin que Claude Code esté abierto",
+          "modelo": "sonnet",
+          "esfuerzo": "medium",
+          "multiagente": false,
+          "verificacion": "Tras correr el comando y abrir una terminal nueva, `pgro doctor` (y cada otro subcomando) corre sin invocar Claude Code, y su resultado es equivalente al de su comando /postgres-readonly-mcp:* correspondiente -- ambos caminos llaman al mismo scripts/*.js, sin lógica duplicada. El instalador es idempotente y nunca sobrescribe un `pgro` que no haya puesto este mismo plugin, siguiendo el mismo patrón que scripts/instalar-atajo.sh de credential-read-guard.",
+          "horas_maquina": 0.2,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Es adaptar un patrón ya probado en arnes-plan/credential-read-guard a múltiples subcomandos -- no es diseño desde cero pero tampoco puramente mecánico.",
+          "archivos": "scripts/instalar-atajo.sh (nuevo), commands/atajo.md (nuevo)",
+          "rollback": "Borrar ambos archivos; si `pgro` ya quedó instalado en ~/.local/bin, borrar ese archivo a mano."
+        }
+      ]
+    },
+    {
+      "ola": 3,
+      "nombre": "Que esto lo pueda usar alguien que no seas tú",
+      "criterio_de_entrada": "Ola 2 cerrada.",
+      "criterio_de_salida": "Otro ingeniero clona, sigue el README y llega a un MCP funcionando en su propio proyecto sin preguntarte nada, y sabe exactamente qué hacer con su secreto sin que pase por el chat. La documentación se lee como el manual formal de una herramienta de uso general en una empresa -- no como notas o bitácora de desarrollo -- y ninguna afirmación sobre lo que el plugin hace queda sin una forma de comprobarla (un comando, un archivo, un paso reproducible): si el texto dice que algo existe o se puede hacer, es porque el código de las olas 1-2 ya lo hace, nunca porque se infiere o se espera que funcione así.",
+      "items": [
+        {
+          "id": "3.1-readme-flujo-nuevo",
+          "titulo": "README.md documenta el flujo completo nuevo de punta a punta (instalar plugin, crear-rol opcional, sembrar, configurar la variable de entorno uno mismo, listar/quitar/doctor/ayuda, y el atajo de terminal pgro) para alguien que nunca habló conmigo -- sin narrar por qué se construyó así ni asumir que ya sabe dónde está cada cosa -- y ya no menciona setup.ps1 ni un userConfig global",
+          "modelo": "sonnet",
+          "esfuerzo": "medium",
+          "multiagente": false,
+          "verificacion": "El README no contiene referencias a scripts/setup.ps1 ni a userConfig.database_uri; sí documenta los siete comandos de Claude Code y el atajo de terminal pgro, requisitos actualizados (uv, no Python+venv), y el paso manual de exportar la variable de entorno en la propia terminal del usuario. Redactado en registro formal de manual de herramienta, sin frases tipo 'esto lo agregamos porque...' ni cronología de la conversación en la que se decidió. Cada capacidad que el texto describe ('podés listar tus conexiones', 'el secreto nunca se guarda en texto plano en el repo', 'podés usar pgro sin abrir Claude Code') tiene, en el propio texto o en un ítem verificable de este ledger, un comando o archivo concreto que lo demuestra -- no una promesa sin respaldo.",
+          "verificacion_comando": "! grep -q 'setup.ps1' README.md && ! grep -q 'userConfig' README.md",
+          "horas_maquina": 0.4,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Reescritura de documentación con criterio editorial -- no es mecánico.",
+          "archivos": "README.md",
+          "rollback": "git revert del commit de este ítem."
+        },
+        {
+          "id": "3.2-security-md-modelo-amenaza",
+          "titulo": "SECURITY.md documenta, en registro formal: que el secreto nunca pasa por la conversación con el modelo ni por ningún archivo versionado; que crear-rol nunca ejecuta SQL contra la base; que solo-lectura protege contra escritura pero NO contra que datos sensibles terminen expuestos en una conversación con el modelo; y el criterio de revisión del pin de versión de postgres-mcp",
+          "modelo": "sonnet",
+          "esfuerzo": "medium",
+          "multiagente": false,
+          "verificacion": "SECURITY.md nombra explícitamente el riesgo de pegar una cadena de conexión en el chat y cómo este plugin lo evita (referencia ${VAR} + variable de entorno propia del usuario), aclara que crear-rol solo genera texto y nunca ejecuta nada, dedica una sección aparte al riesgo de exposición de datos sensibles vía consultas de solo lectura (distinto del riesgo de escritura) con la mitigación recomendada (excluir columnas/tablas sensibles del GRANT), y dice explícitamente cada cuánto o bajo qué condición se revisa el pin postgres-mcp==0.3.0 por vulnerabilidades conocidas. Registro formal: sin anécdota de por qué se decidió cada cosa, cada afirmación de riesgo o mitigación remite a un mecanismo real del código (no una intención).",
+          "horas_maquina": 0.25,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Requiere entender el modelo de amenaza real del cambio, no copiar una plantilla genérica.",
+          "archivos": "SECURITY.md",
+          "rollback": "git revert del commit de este ítem."
+        },
+        {
+          "id": "3.3-e2e-manual-sembrar-a-mcp-vivo",
+          "titulo": "En un directorio de prueba, sembrar + exportar la variable de entorno con una URI válida hace que `claude mcp list` deje de fallar por mecanismo del plugin (archivo faltante, exe no encontrado, variable sin resolver) -- si aún falla, es por la base de datos en sí, no por el plugin",
+          "modelo": "sonnet",
+          "esfuerzo": "medium",
+          "multiagente": false,
+          "verificacion": "Correr sembrar en un repo de prueba (no este mismo, para no ensuciar su .mcp.json), exportar la variable resultante con una URI sintácticamente válida (real si hay una base de desarrollo a mano, de prueba si no), y confirmar con `claude mcp list` que el servidor pg-ro-<alias> ya no muestra el error original de este hilo ('failed' por .venv/exe ausente). Correr también doctor (y su equivalente `pgro doctor` desde una terminal aparte, sin Claude Code) antes y después de exportar la variable, y confirmar que ambos coinciden con lo que en verdad pasó en cada momento. Esto es la prueba de que el rediseño resuelve el problema que arrancó esta conversación, no solo que cada archivo existe por separado. Va antes del bump de versión a propósito: no tiene sentido declarar 2.0.0 sin haber probado que funciona de punta a punta.",
+          "horas_maquina": 0.4,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Es una verificación de integración de varias piezas juntas -- necesita criterio para distinguir un fallo del mecanismo de un fallo de la base de datos misma.",
+          "archivos": "Ninguno permanente -- corre en un directorio de prueba descartable.",
+          "rollback": "No aplica: no toca archivos del repo. Si falla, el ítem vuelve a pendiente y señala cuál de los ítems anteriores (2.1-2.8) tiene el defecto real."
+        },
+        {
+          "id": "3.4-changelog-version-bump",
+          "titulo": "CHANGELOG.md tiene una entrada 2.0.0 describiendo el cambio de mecanismo (breaking: ya no hay registro automático global al instalar el plugin) y plugin.json declara version 2.0.0 -- se cierra al final, con todo lo demás ya mergeado a main, nunca antes",
+          "modelo": "sonnet",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "CHANGELOG.md tiene una sección ## [2.0.0] con la fecha del día en que se cierra el ítem; plugin.json.version es 2.0.0; la entrada explica qué se rompe para quien ya tenía el plugin instalado en el modo viejo; en el momento de cerrar este ítem, todos los ítems anteriores (1.1-3.3) ya están en estado hecho y mergeados a main.",
+          "verificacion_comando": "grep -q '2.0.0' CHANGELOG.md && grep -q '\"version\": \"2.0.0\"' .claude-plugin/plugin.json",
+          "horas_maquina": 0.02,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Redacción breve siguiendo Keep a Changelog -- no requiere opus.",
+          "archivos": "CHANGELOG.md, .claude-plugin/plugin.json",
+          "rollback": "git revert del commit de este ítem."
+        },
+        {
+          "id": "3.5-tag-release",
+          "titulo": "Existe un tag inmutable postgres-readonly-mcp--v2.0.0 sobre el commit de main que cierra el ítem 3.4, siguiendo la convención de tags con nombre de proyecto de los demás repos del autor",
+          "modelo": "haiku",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "El tag existe en el remoto, apunta exactamente al commit de main donde CHANGELOG.md y plugin.json ya dicen 2.0.0 (no a un commit posterior ni anterior). Este ítem requiere confirmación explícita del autor antes de crear y pushear el tag -- es una acción visible hacia afuera, no se hace en automode.",
+          "horas_maquina": 0.02,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Es mecánico (git tag + push), pero el momento exacto y la confirmación de crearlo sí importan.",
+          "archivos": "Ninguno -- es un tag de git, no un archivo.",
+          "rollback": "El tag se puede borrar del remoto (git push --delete) si se creó sobre el commit equivocado; no afecta código."
+        }
+      ]
+    }
+  ]
+}
