@@ -5,14 +5,5 @@
   "description": "Acceso MCP de solo lectura a bases PostgreSQL, con proteccion en dos capas: rol de base de datos con GRANT SELECT unicamente + servidor MCP en modo restringido (bloquea escrituras a nivel de parser SQL).",
   "author": {
     "name": "Daniel Wueno BP"
-  },
-  "mcpServers": "./.mcp.json",
-  "userConfig": {
-    "database_uri": {
-      "type": "string",
-      "title": "Postgres connection URI (rol solo-lectura)",
-      "description": "postgresql://usuario:password@host:puerto/basededatos. Debe ser siempre un rol dedicado creado con db/create_readonly_role.sql (solo SELECT). No debe reutilizarse la cuenta de la aplicacion.",
-      "sensitive": true
-    }
   }
 }
