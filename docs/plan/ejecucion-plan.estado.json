@@ -162,10 +162,12 @@
           "verificacion": "Corriendo el comando, la salida nombra los cinco comandos con una descripción de una línea cada uno y el orden recomendado (crear-rol opcional -> sembrar -> vos configurás tu variable -> listar/quitar/doctor para mantenerlo). No requiere haber sembrado ninguna conexión ni tener uv instalado para funcionar -- es solo texto.",
           "verificacion_comando": "[ -f commands/ayuda.md ] && grep -q 'sembrar' commands/ayuda.md && grep -q 'listar' commands/ayuda.md && grep -q 'quitar' commands/ayuda.md && grep -q 'doctor' commands/ayuda.md && grep -qi 'crear-rol' commands/ayuda.md",
           "horas_maquina": 0.02,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-09",
           "por_que_este_modelo": "Es texto estático que resume comandos ya definidos en ítems anteriores -- no hay diseño nuevo que decidir.",
           "archivos": "commands/ayuda.md (nuevo)",
-          "rollback": "Borrar commands/ayuda.md."
+          "rollback": "Borrar commands/ayuda.md.",
+          "resultado": "Creado commands/ayuda.md: expone el comando /postgres-readonly-mcp:ayuda, que imprime los seis pasos en orden recomendado (crear-rol opcional, sembrar, configurar variable de entorno manualmente, listar, quitar, doctor) con una línea de descripción clara para cada uno. No requiere uv instalado ni conexiones sembradas. Verificado con el verificacion_comando literal del ítem: archivo existe y contiene 'sembrar', 'listar', 'quitar', 'doctor', 'crear-rol' (exit 0)."
         },
         {
           "id": "2.8-atajo-terminal-pgro",
