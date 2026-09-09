@@ -176,7 +176,8 @@
           "estado": "pendiente",
           "por_que_este_modelo": "Es adaptar un patrón ya probado en arnes-plan/credential-read-guard a múltiples subcomandos -- no es diseño desde cero pero tampoco puramente mecánico.",
           "archivos": "scripts/instalar-atajo.sh (nuevo), commands/atajo.md (nuevo)",
-          "rollback": "Borrar ambos archivos; si `pgro` ya quedó instalado en ~/.local/bin, borrar ese archivo a mano."
+          "rollback": "Borrar ambos archivos; si `pgro` ya quedó instalado en ~/.local/bin, borrar ese archivo a mano.",
+          "nota_cruzada_2.5": "commands/crear-rol.md (ítem 2.5) no invoca ningún scripts/*.js: es una plantilla que el propio modelo de Claude Code rellena e imprime, sin lógica determinista en Node detrás. Por diseño depende de que un modelo esté interpretando el comando -- no es agnóstico a dónde se ejecuta, a diferencia de sembrar/listar/quitar/doctor. Este ítem promete 'pgro crear-rol' despachando 'directo a los scripts de esta ola', pero no existe (ni debería crearse solo para esto) un scripts/crear-rol.js al que despachar. Al implementar este ítem, decidir explícitamente: (a) `pgro crear-rol` queda fuera del atajo de terminal y el comando avisa que esa función solo existe dentro de Claude Code, o (b) se extrae a un script Node la parte mecánica de generar el SQL (sin la explicación en lenguaje llano, que sí depende del modelo) para que pgro pueda imprimir al menos el SQL. No asumir ninguna de las dos sin confirmarlo -- es una decisión de alcance de la ficha, no un detalle de implementación."
         }
       ]
     },
