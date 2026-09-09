@@ -146,7 +146,8 @@
           "multiagente": false,
           "verificacion": "Corriendo el comando en un proyecto de prueba con una conexión sembrada cuya variable NO está seteada, la salida identifica esa conexión puntual como la causa probable de un fallo, en una frase en lenguaje llano que no requiere leer un stack trace ni saber qué es una expansión de variable. Corriendo el comando sin uv instalado (o simulando su ausencia), avisa eso como bloqueante antes que cualquier otra cosa, con el paso concreto para instalarlo. No requiere que ninguna base de datos esté realmente accesible para dar un diagnóstico útil.",
           "horas_maquina": 0.2,
-          "estado": "pendiente",
+          "estado": "en_curso",
+          "_fecha_inicio": "2026-09-09",
           "por_que_este_modelo": "Diagnosticar y priorizar cuál de varias causas posibles es la más probable es una decisión de diseño, no una lectura mecánica de estado.",
           "archivos": "scripts/doctor.js (nuevo), commands/doctor.md (nuevo)",
           "rollback": "Borrar ambos archivos."
