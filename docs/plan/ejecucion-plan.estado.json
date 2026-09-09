@@ -131,10 +131,12 @@
           "verificacion": "El comando pide únicamente nombres de esquema, nunca una URI ni contraseña. Toda la salida -- SQL, explicación y pasos -- se imprime directo en la consola del chat, no se escribe a un archivo nuevo que el usuario deba localizar. La explicación cubre, en lenguaje sin jerga: qué es este rol y para qué sirve, por qué debe ser de solo lectura, qué programa usar para ejecutar el SQL (ej. psql o el cliente gráfico que ya tenga) y los pasos exactos para pegarlo y correrlo ahí. El SQL generado incluye un ALTER ROLE ... SET statement_timeout con un valor conservador documentado (y por qué ese valor). La explicación nombra explícitamente que el modo solo-lectura no protege contra exposición de datos sensibles en la conversación, y sugiere revisar qué columnas/tablas entran en el GRANT antes de correrlo. Incluye una advertencia visible de 'esto es solo para desarrollo, corrélo vos mismo'. No incluye ninguna invocación a psql ni a un driver de conexión desde el propio comando, y es opcional (el flujo de sembrar/listar/quitar no depende de haberlo corrido).",
           "verificacion_comando": "[ -f commands/crear-rol.md ] && ! grep -qiE 'DATABASE_URI|password=' commands/crear-rol.md && grep -qi 'statement_timeout' commands/crear-rol.md",
           "horas_maquina": 0.2,
-          "estado": "pendiente",
+          "estado": "hecho",
           "por_que_este_modelo": "La advertencia, el límite de qué NO debe hacer el comando, el valor de timeout razonable, y explicar esto para alguien sin trasfondo técnico son decisiones de diseño, no un chequeo mecánico.",
           "archivos": "commands/crear-rol.md (nuevo)",
-          "rollback": "Borrar commands/crear-rol.md."
+          "rollback": "Borrar commands/crear-rol.md.",
+          "_fecha_inicio": "2026-09-09",
+          "resultado": "Creado commands/crear-rol.md: pide únicamente esquema(s) (más nombre de rol y de base, con valores por defecto), nunca URI ni contraseña real. Genera un bloque SQL completo impreso directo en el chat (nunca a archivo): CREATE ROLE con placeholder 'CAMBIA_ESTA_CONTRASEÑA', GRANT CONNECT, GRANT USAGE, GRANT SELECT sobre tablas existentes, ALTER DEFAULT PRIVILEGES para tablas futuras, y ALTER ROLE ... SET statement_timeout = '30s' con la justificación del valor (evitar que un SELECT pesado sin filtrar acapare CPU/IO). Explica en lenguaje llano qué es el rol, por qué solo lectura, y cómo correrlo (psql o cliente gráfico), sin asumir conocimiento previo. Incluye advertencia visible de que solo-lectura no protege contra exposición de PII/datos sensibles en la conversación (recomienda GRANT por columna o vistas) y de que es solo para desarrollo, nunca producción. El comando nunca se conecta a ninguna base ni ejecuta SQL. Verificado por mí (no solo por el subagente que lo redactó) con el verificacion_comando literal adaptado a PowerShell: exists=True, hasBad=False (ni 'DATABASE_URI' ni 'password=' presentes), hasTimeout=True."
         },
         {
           "id": "2.6-comando-doctor",
@@ -174,7 +176,8 @@
           "estado": "pendiente",
           "por_que_este_modelo": "Es adaptar un patrón ya probado en arnes-plan/credential-read-guard a múltiples subcomandos -- no es diseño desde cero pero tampoco puramente mecánico.",
           "archivos": "scripts/instalar-atajo.sh (nuevo), commands/atajo.md (nuevo)",
-          "rollback": "Borrar ambos archivos; si `pgro` ya quedó instalado en ~/.local/bin, borrar ese archivo a mano."
+          "rollback": "Borrar ambos archivos; si `pgro` ya quedó instalado en ~/.local/bin, borrar ese archivo a mano.",
+          "_nota_cruzada_2.5": "commands/crear-rol.md (ítem 2.5) no invoca ningún scripts/*.js: es una plantilla que el propio modelo de Claude Code rellena e imprime, sin lógica determinista en Node detrás. Por diseño depende de que un modelo esté interpretando el comando -- no es agnóstico a dónde se ejecuta, a diferencia de sembrar/listar/quitar/doctor. Este ítem promete 'pgro crear-rol' despachando 'directo a los scripts de esta ola', pero no existe (ni debería crearse solo para esto) un scripts/crear-rol.js al que despachar. Al implementar este ítem, decidir explícitamente: (a) `pgro crear-rol` queda fuera del atajo de terminal y el comando avisa que esa función solo existe dentro de Claude Code, o (b) se extrae a un script Node la parte mecánica de generar el SQL (sin la explicación en lenguaje llano, que sí depende del modelo) para que pgro pueda imprimir al menos el SQL. No asumir ninguna de las dos sin confirmarlo -- es una decisión de alcance de la ficha, no un detalle de implementación."
         }
       ]
     },
