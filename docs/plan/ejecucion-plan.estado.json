@@ -247,10 +247,12 @@
           "verificacion": "CHANGELOG.md tiene una sección ## [2.0.0] con la fecha del día en que se cierra el ítem; plugin.json.version es 2.0.0; la entrada explica qué se rompe para quien ya tenía el plugin instalado en el modo viejo; en el momento de cerrar este ítem, todos los ítems anteriores (1.1-3.3) ya están en estado hecho y mergeados a main.",
           "verificacion_comando": "grep -q '2.0.0' CHANGELOG.md && grep -q '\"version\": \"2.0.0\"' .claude-plugin/plugin.json",
           "horas_maquina": 0.02,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-09",
           "por_que_este_modelo": "Redacción breve siguiendo Keep a Changelog -- no requiere opus.",
           "archivos": "CHANGELOG.md, .claude-plugin/plugin.json",
-          "rollback": "git revert del commit de este ítem."
+          "rollback": "git revert del commit de este ítem.",
+          "resultado": "Se agregó la sección '## [2.0.0] — 2026-09-09' en CHANGELOG.md (subsecciones Roto y Cambiado) describiendo el fin del registro automático global y el nuevo mecanismo por proyecto vía sembrar/uvx, y se cambió \"version\" a \"2.0.0\" en .claude-plugin/plugin.json. Verificación ejecutada: grep -q '2.0.0' CHANGELOG.md && grep -q '\"version\": \"2.0.0\"' .claude-plugin/plugin.json -> exit code 0 (equivalente PowerShell: Select-String -Path CHANGELOG.md -Pattern '2.0.0' -Quiet => True; Select-String -Path .claude-plugin/plugin.json -Pattern '\"version\": \"2.0.0\"' -Quiet => True)."
         },
         {
           "id": "3.5-tag-release",
