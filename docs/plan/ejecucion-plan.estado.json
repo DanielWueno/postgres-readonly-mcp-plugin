@@ -26,17 +26,19 @@
         },
         {
           "id": "1.2-smoke-test-uvx",
-          "titulo": "uvx --from postgres-mcp==0.3.0 --with \"mcp<2\" postgres-mcp --access-mode=restricted --help arranca sin error en esta máquina, antes de construir comandos sobre ese mecanismo",
+          "titulo": "uvx --system-certs --from postgres-mcp==0.3.0 --with \"mcp<2\" postgres-mcp --access-mode=restricted --help arranca sin error en esta máquina, antes de construir comandos sobre ese mecanismo",
           "modelo": "haiku",
           "esfuerzo": "low",
           "multiagente": false,
-          "verificacion": "El comando corre y termina con código 0, probando que uv/uvx están disponibles y que el pin de versión (postgres-mcp==0.3.0, mcp<2) resuelve sin conflicto de dependencias.",
-          "verificacion_comando": "uvx --from postgres-mcp==0.3.0 --with \"mcp<2\" postgres-mcp --access-mode=restricted --help",
+          "verificacion": "El comando corre y termina con código 0, probando que uv/uvx están disponibles y que el pin de versión (postgres-mcp==0.3.0, mcp<2) resuelve sin conflicto de dependencias. Incluye --system-certs porque no se puede asumir que la máquina de cada usuario tiene el almacén de certificados por defecto de uv -- redes corporativas con inspección TLS (proxy con CA propia) rompen la resolución de paquetes sin este flag, y el flag es inofensivo cuando no hace falta.",
+          "verificacion_comando": "uvx --system-certs --from postgres-mcp==0.3.0 --with \"mcp<2\" postgres-mcp --access-mode=restricted --help",
           "horas_maquina": 0.05,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-08",
           "por_que_este_modelo": "Solo corre un comando y lee el código de salida -- no hay criterio de diseño que decidir.",
           "archivos": "Ninguno -- es una prueba de humo, no toca código.",
-          "rollback": "No aplica: no cambia ningún archivo. Si falla, el ítem se marca bloqueado hasta resolver el pin de versión o instalar uv, no se revierte nada."
+          "rollback": "No aplica: no cambia ningún archivo. Si falla, el ítem se marca bloqueado hasta resolver el pin de versión o instalar uv, no se revierte nada.",
+          "resultado": "uv 0.12.10 instalado (dos ubicaciones en esta máquina: Programs\\uv\\bin y el paquete WinGet astral-sh.uv, el segundo con uvx.exe). Smoke test inicial (2026-09-08) reportado con exit 0 sin --system-certs, pero no reproducía en una terminal nueva: (1) el PATH de usuario incluye uv/uvx pero procesos de shell ya abiertos no lo heredan -- confundible con 'no instalado'; (2) SIN --system-certs, uvx falla con 'invalid peer certificate: UnknownIssuer' contra pypi.org -- esta red hace inspección TLS (proxy corporativo) y uv no confía en esa CA por defecto. Reabierto 2026-09-09, diagnosticado, y corregido agregando --system-certs al comando (no una variable de entorno local): con exit code 0 muestra el --help de postgres-mcp. Se eligió el flag en el comando -- y no una config de máquina como UV_SYSTEM_CERTS -- porque este smoke test y el mecanismo que representa se van a instalar en máquinas de otros compañeros, y no se puede depender de que cada uno configure su entorno de uv antes de que el plugin funcione. Ver nota cruzada en 2.1-script-sembrar: los comandos uvx que ese script escriba en .mcp.json deben incluir el mismo flag por la misma razón."
         },
         {
           "id": "1.3-borrar-venv-scripts",
@@ -47,10 +49,11 @@
           "verificacion": "Ningún archivo scripts/setup.ps1 ni scripts/run.cmd en el árbol del repo.",
           "verificacion_comando": "[ ! -f scripts/setup.ps1 ] && [ ! -f scripts/run.cmd ]",
           "horas_maquina": 0.02,
-          "estado": "pendiente",
+          "estado": "hecho",
           "por_que_este_modelo": "Es borrar dos archivos ya obsoletos -- no requiere juicio de diseño.",
           "archivos": "scripts/setup.ps1 (se borra), scripts/run.cmd (se borra)",
-          "rollback": "git revert del commit de este ítem los restaura."
+          "rollback": "git revert del commit de este ítem los restaura.",
+          "resultado": "Se eliminaron ambos archivos scripts/setup.ps1 y scripts/run.cmd del repositorio. Verificado con el verificacion_comando: ambos archivos están ausentes del árbol del repo (exit 0)."
         }
       ]
     },
@@ -71,7 +74,8 @@
           "estado": "pendiente",
           "por_que_este_modelo": "El criterio de diseño real (nombre de variable sin choques entre proyectos, nunca tocar el secreto) es el trabajo, no un chequeo mecánico.",
           "archivos": "scripts/sembrar.js (nuevo)",
-          "rollback": "Borrar scripts/sembrar.js. Si ya se corrió sobre un .mcp.json real de algún proyecto, restaurar ese archivo desde git en ese repo."
+          "rollback": "Borrar scripts/sembrar.js. Si ya se corrió sobre un .mcp.json real de algún proyecto, restaurar ese archivo desde git en ese repo.",
+          "nota_cruzada_1.2": "El smoke test 1.2-smoke-test-uvx encontró que uvx sin --system-certs falla en redes con inspección TLS (proxy corporativo con CA propia) -- caso real en la máquina del autor, y no descartable en la de un compañero. Los args de uvx que este script escriba en env de la entrada pg-ro-<alias> de .mcp.json deben incluir --system-certs por la misma razón: no se puede depender de que cada usuario configure su entorno de uv antes de que el plugin le funcione."
         },
         {
           "id": "2.2-comando-sembrar",
