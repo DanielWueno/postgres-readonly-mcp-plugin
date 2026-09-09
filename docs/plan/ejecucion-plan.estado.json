@@ -49,10 +49,11 @@
           "verificacion": "Ningún archivo scripts/setup.ps1 ni scripts/run.cmd en el árbol del repo.",
           "verificacion_comando": "[ ! -f scripts/setup.ps1 ] && [ ! -f scripts/run.cmd ]",
           "horas_maquina": 0.02,
-          "estado": "pendiente",
+          "estado": "hecho",
           "por_que_este_modelo": "Es borrar dos archivos ya obsoletos -- no requiere juicio de diseño.",
           "archivos": "scripts/setup.ps1 (se borra), scripts/run.cmd (se borra)",
-          "rollback": "git revert del commit de este ítem los restaura."
+          "rollback": "git revert del commit de este ítem los restaura.",
+          "resultado": "Se eliminaron ambos archivos scripts/setup.ps1 y scripts/run.cmd del repositorio. Verificado con el verificacion_comando: ambos archivos están ausentes del árbol del repo (exit 0)."
         }
       ]
     },
