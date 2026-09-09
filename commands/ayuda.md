@@ -33,6 +33,24 @@ setx NOMBRE_DE_VARIABLE "postgresql://usuario:contraseña@host:puerto/basedatos"
 ```
 (Después de ejecutar `setx`, abrí una terminal nueva para que surta efecto.)
 
+**Advertencia sobre contraseñas con caracteres especiales**: si la contraseña
+contiene alguno de estos caracteres — `@ : / # % espacio "` — puede romper el
+parseo de la cadena de conexión. Por ejemplo, una `@` dentro de la contraseña
+se confunde con el separador entre credenciales y host; una `:` adicional se
+confunde con el separador entre usuario y contraseña; y un `#` puede
+truncarse como si fuera un fragmento de URL. Además, `setx` puede corromper
+valores con comillas u otros caracteres especiales si el argumento no queda
+bien delimitado.
+
+Para evitarlo: URL-encodeá solo la contraseña (no la cadena completa) antes
+de armarla. En PowerShell:
+```powershell
+[uri]::EscapeDataString("p@ss:word")
+```
+Eso devuelve `p%40ss%3Aword`, que es lo que va en el lugar de la contraseña
+dentro de la cadena de conexión. Envolvé siempre el valor completo de la URI
+entre comillas dobles al usar `$env:` o `setx`.
+
 El nombre exacto de la variable te lo dice el script de `/sembrar` — copiar tal cual.
 
 ## 4. `/listar`

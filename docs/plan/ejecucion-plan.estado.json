@@ -318,10 +318,12 @@
           "verificacion": "Los tres archivos (README.md, commands/sembrar.md, commands/ayuda.md) incluyen, en el paso de exportar la variable, una advertencia explícita sobre caracteres especiales en la contraseña y un paso concreto para evitar que se rompa el parseo de la URI o el propio comando setx -- no una mención genérica de 'tené cuidado'.",
           "verificacion_comando": "grep -qi 'caracteres especiales\\|encodeURIComponent\\|URL.encod' README.md commands/sembrar.md commands/ayuda.md",
           "horas_maquina": 0.05,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-09",
           "por_que_este_modelo": "Redacción de una advertencia técnica precisa (qué caracteres, por qué rompen, cómo evitarlo) -- no es copiar una plantilla genérica.",
           "archivos": "README.md, commands/sembrar.md, commands/ayuda.md",
-          "rollback": "git revert del commit de este ítem."
+          "rollback": "git revert del commit de este ítem.",
+          "resultado": "Agregada en README.md, commands/sembrar.md y commands/ayuda.md, junto al paso de $env:/setx, una advertencia explícita sobre contraseñas con caracteres especiales (@ : / # % espacio \"): nombra el carácter concreto y el fallo de parseo que causa (@ confunde el separador credenciales/host, : adicional confunde usuario/contraseña, # trunca como fragmento de URL), aclara que setx puede corromper valores con comillas/caracteres especiales mal delimitados, y da el paso accionable: URL-encodear solo la contraseña con [uri]::EscapeDataString(\"p@ss:word\") en PowerShell (devuelve p%40ss%3Aword) y envolver el valor completo de la URI entre comillas al usar $env:/setx. En commands/sembrar.md se mantuvo el registro de instrucción al modelo (\"explicame\", \"decime\", \"aclarame\") consistente con el resto del archivo; README.md y commands/ayuda.md quedaron en registro directo de manual. Verificado con el verificacion_comando literal del ítem en PowerShell (Select-String -Pattern 'caracteres especiales|encodeURIComponent|URL.encod' -CaseSensitive:$false): coincidencias encontradas en los tres archivos."
         },
         {
           "id": "4.4-colision-alias-mismo-env-var",
