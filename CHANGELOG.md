@@ -3,6 +3,36 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/).
 
+## [2.0.0] — 2026-09-09
+
+### Roto
+
+- El plugin ya no registra ningún servidor MCP automáticamente al
+  instalarse: se eliminaron `mcpServers` y `userConfig` de `plugin.json`, y
+  ya no existe `.mcp.json` en la raíz del plugin. Quien ya tenía el plugin
+  instalado en el modo anterior pierde el registro global al actualizar y
+  debe correr `/postgres-readonly-mcp:sembrar <alias>` en cada proyecto
+  donde quiera volver a usarlo.
+- `scripts/setup.ps1` y `scripts/run.cmd` fueron eliminados, junto con el
+  entorno virtual Python local (`.venv`) que ambos gestionaban.
+
+### Cambiado
+
+- El servidor MCP ahora se agrega por proyecto, no de forma global: el
+  comando `/postgres-readonly-mcp:sembrar <alias>` (o `pgro sembrar <alias>`
+  desde una terminal normal) añade una entrada `pg-ro-<alias>` al
+  `.mcp.json` del proyecto actual, lanzando `postgres-mcp` vía `uvx` con
+  versiones fijadas, en vez de depender de un entorno virtual local.
+- La cadena de conexión ya no se pide como `userConfig` ni se guarda en
+  ningún archivo versionado: la entrada generada usa
+  `env.DATABASE_URI="${PGRO_<PROYECTO>_<ALIAS>}"`, una referencia a una
+  variable de entorno que el propio usuario exporta en su terminal o
+  perfil de shell. El secreto nunca pasa por la conversación con el modelo.
+- Se agregan los comandos `/postgres-readonly-mcp:sembrar`, `listar`,
+  `quitar`, `doctor` y `crear-rol`, además de `ayuda`.
+- Se agrega el atajo de terminal `pgro`, con los mismos subcomandos, para
+  administrar el plugin sin tener Claude Code abierto.
+
 ## [1.0.1] — 2026-09-07
 
 ### Corregido
