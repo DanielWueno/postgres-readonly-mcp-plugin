@@ -5,9 +5,12 @@ PostgreSQL, reforzado en dos capas independientes que impiden cualquier
 escritura. Orientado a auditorías de esquema, exploración de datos y
 extracción de DDL/configuración previa a una migración a producción.
 
-Se instala una vez por máquina y se habilita en cualquier proyecto
-mediante un connection string, sin reconfigurar el servidor MCP por
-repositorio.
+Cada proyecto de Claude Code registra sus propias conexiones (una entrada
+por base de datos, en el `.mcp.json` de ese proyecto) y cada conexión
+depende de una variable de entorno que el propio usuario configura en su
+máquina. Ni la cadena de conexión ni ninguna credencial pasan nunca por la
+conversación con el modelo, ni quedan guardadas en ningún archivo
+versionado.
 
 ## Cómo se garantiza el acceso de solo lectura
 
@@ -25,7 +28,8 @@ Dos capas independientes, de forma que una falla en una no compromete la
 garantía:
 
 1. **Rol de base de datos con `GRANT SELECT` únicamente** — ver
-   [`db/create_readonly_role.sql`](db/create_readonly_role.sql). Es la
+   [`db/create_readonly_role.sql`](db/create_readonly_role.sql), o generar
+   ese SQL con `/postgres-readonly-mcp:crear-rol` (ver más abajo). Es la
    capa determinante: aunque el cliente MCP presentara un defecto, la base
    de datos rechaza cualquier escritura a nivel de permisos.
 2. **[postgres-mcp](https://github.com/crystaldba/postgres-mcp) en modo
@@ -33,59 +37,139 @@ garantía:
    `COMMIT`/`ROLLBACK` a nivel de parser SQL, antes de que lleguen a la
    base de datos.
 
-## Justificación del entorno virtual local
-
-En redes con inspección TLS (proxys corporativos, agentes EDR), las
-descargas de paquetes en tiempo de ejecución pueden fallar de forma
-intermitente o invalidar la verificación de hashes de pip. Este plugin
-instala una única vez un entorno virtual local con versiones fijadas
-(`postgres-mcp==0.3.0`, `mcp<2` — fijado para evitar un conflicto de
-dependencias con versiones más recientes de `mcp`) y lo reutiliza en cada
-sesión, en lugar de resolver paquetes por red en cada arranque.
-
 ## Requisitos
 
 - Claude Code con soporte de plugins y servidores MCP.
-- Python 3.10 o superior disponible en `PATH`.
+- [`uv`](https://docs.astral.sh/uv/) disponible en `PATH` (que incluye
+  `uvx`). El plugin no instala ni requiere un entorno virtual de Python:
+  cada servidor MCP se arranca bajo demanda con
+  `uvx --system-certs --from postgres-mcp==0.3.0 --with "mcp<2" postgres-mcp --access-mode=restricted`.
+  El flag `--system-certs` es necesario en redes con proxy o inspección
+  TLS corporativa — sin él, `uvx` puede fallar con un error de tipo
+  `UnknownIssuer` al intentar descargar el paquete desde pypi.org.
+- `node` disponible en `PATH` (los comandos del plugin ejecutan scripts
+  de Node para leer y escribir `.mcp.json`).
 
-## Instalación y uso
+## Instalación
 
-1. Instalar el plugin una vez por máquina:
-   ```
-   /plugin marketplace add DanielWueno/dweno-forge
-   /plugin install postgres-readonly-mcp@dweno-forge
-   ```
-   Alternativa sin marketplace: clonar este repositorio directamente.
-2. Ejecutar `scripts/setup.ps1` (crea el entorno virtual local — una sola
-   vez por máquina).
-3. Crear un rol de solo lectura en la base destino con
-   [`db/create_readonly_role.sql`](db/create_readonly_role.sql), adaptado
-   a los esquemas correspondientes. Verificar que el rol no pueda escribir
-   — el script incluye las consultas de verificación al final.
-4. En cualquier proyecto de Claude Code, habilitar el plugin e ingresar el
-   connection string del rol de solo lectura cuando se solicite
-   (`postgresql://usuario:password@host:puerto/basededatos`). El valor se
-   almacena de forma segura (keychain del sistema o archivo de
-   credenciales), nunca en un archivo versionado.
-
-## Proyectos con múltiples bases de datos
-
-El `userConfig` del plugin cubre el caso simple: un proyecto, una base de
-datos. Para proyectos que combinan varias bases o varios ambientes, no se
-debe reconfigurar el plugin — se registra un servidor MCP por base, en
-alcance local del proyecto, reutilizando el entorno virtual ya instalado:
-
-```bash
-claude mcp add pg-ro-<alias> -s local \
-  -e DATABASE_URI=postgresql://usuario:password@host:puerto/basededatos \
-  -- "<ruta-al-repositorio-del-plugin>\.venv\Scripts\postgres-mcp.exe" --access-mode=restricted
+```
+/plugin marketplace add DanielWueno/dweno-forge
+/plugin install postgres-readonly-mcp@dweno-forge
 ```
 
-Se repite con un `<alias>` distinto por cada base (por ejemplo,
-`pg-ro-xafsuite`, `pg-ro-facturacion`). Todos los servidores comparten el
-mismo entorno virtual y el mismo modo restringido; únicamente cambia el
-connection string. Cada rol de solo lectura se crea de la misma forma, con
-`db/create_readonly_role.sql` contra su base correspondiente.
+Alternativa sin marketplace: clonar este repositorio directamente.
+
+## Comandos disponibles
+
+Todos los comandos viven bajo el namespace `/postgres-readonly-mcp:` (por
+ejemplo, `/postgres-readonly-mcp:sembrar`). Operan siempre sobre el
+proyecto actual — la carpeta desde donde se está corriendo Claude Code —
+y nunca sobre otro proyecto ni sobre configuración global.
+
+### 1. `/postgres-readonly-mcp:crear-rol` (opcional)
+
+Genera, como bloque de SQL impreso en el chat, el `CREATE ROLE` y los
+`GRANT` necesarios para un rol de solo lectura sobre uno o más esquemas,
+incluyendo un `statement_timeout` conservador para evitar que una consulta
+pesada acapare recursos de la base. No se conecta a ninguna base de datos
+ni ejecuta nada — el SQL resultante se corre a mano (psql, pgAdmin,
+DBeaver, etc.) con un usuario administrador.
+
+### 2. `/postgres-readonly-mcp:sembrar <alias>`
+
+Registra una conexión nueva en el `.mcp.json` del proyecto actual, con
+nombre de servidor `pg-ro-<alias>`. La entrada generada usa una
+**referencia** a una variable de entorno, nunca un secreto en texto:
+
+```json
+{
+  "mcpServers": {
+    "pg-ro-<alias>": {
+      "command": "uvx",
+      "args": ["--system-certs", "--from", "postgres-mcp==0.3.0", "--with", "mcp<2", "postgres-mcp", "--access-mode=restricted"],
+      "env": { "DATABASE_URI": "${PGRO_<PROYECTO>_<ALIAS>}" }
+    }
+  }
+}
+```
+
+El nombre de la variable sigue el patrón `PGRO_<PROYECTO>_<ALIAS>`, donde
+`<PROYECTO>` sale del nombre de la carpeta del proyecto actual. El comando
+nunca pide ni acepta una cadena de conexión real — solo el alias corto — y
+al terminar imprime las líneas listas para copiar en PowerShell para
+completar el paso siguiente.
+
+### 3. Configurar la variable de entorno (paso manual, en tu propia terminal)
+
+Después de sembrar una conexión, la cadena de conexión real a la base de
+datos se configura **en tu propia máquina**, como variable de entorno, con
+el nombre exacto que imprimió `/postgres-readonly-mcp:sembrar`. Este dato
+nunca se pega en el chat ni se guarda en ningún archivo del repositorio.
+
+En PowerShell, para la sesión actual:
+
+```powershell
+$env:PGRO_<PROYECTO>_<ALIAS> = "postgresql://usuario:contraseña@host:puerto/basedatos"
+```
+
+Para que quede guardada de forma permanente en Windows (requiere abrir una
+terminal nueva para que surta efecto):
+
+```powershell
+setx PGRO_<PROYECTO>_<ALIAS> "postgresql://usuario:contraseña@host:puerto/basedatos"
+```
+
+### 4. `/postgres-readonly-mcp:listar`
+
+Lista las conexiones `pg-ro-*` sembradas en el `.mcp.json` del proyecto
+actual: alias y nombre de la variable de entorno que cada una espera.
+Nunca muestra contraseñas ni cadenas de conexión reales, porque nunca las
+lee ni las guarda.
+
+### 5. `/postgres-readonly-mcp:quitar <alias>`
+
+Elimina del `.mcp.json` del proyecto actual la entrada `pg-ro-<alias>`
+correspondiente, sin tocar el resto del archivo. No borra la variable de
+entorno configurada en la máquina — eso se hace aparte, si se desea.
+
+### 6. `/postgres-readonly-mcp:doctor`
+
+Diagnostica por qué una conexión sembrada podría no estar funcionando, sin
+conectarse a ninguna base de datos real. Revisa, en orden: si `uv`/`uvx`
+está disponible en `PATH` (bloqueante si falta, porque sin eso ningún
+servidor MCP de este plugin puede arrancar), qué conexiones `pg-ro-*` hay
+sembradas en el proyecto actual, y para cada una si su variable de entorno
+está seteada en la sesión actual — una variable sin setear es señalada
+como primera sospechosa de un fallo, porque sin ella la conexión queda
+apuntando literalmente al texto `${NOMBRE_DE_VARIABLE}` en vez de a una
+base real.
+
+### 7. `/postgres-readonly-mcp:ayuda`
+
+Resume, dentro del propio chat, los comandos disponibles y el orden
+recomendado para usarlos, sin necesidad de salir a leer este README.
+
+## Atajo de terminal: `pgro`
+
+`/postgres-readonly-mcp:atajo` instala un lanzador llamado `pgro` en
+`~/.local/bin` (con su correspondiente `.cmd` en Windows), para usar este
+plugin desde una terminal normal sin tener Claude Code abierto. Es
+idempotente y no sobrescribe un `pgro` que no haya instalado este mismo
+plugin. Subcomandos disponibles:
+
+- `pgro sembrar <alias>` — igual que `/postgres-readonly-mcp:sembrar`.
+- `pgro listar` — igual que `/postgres-readonly-mcp:listar`.
+- `pgro quitar <alias>` — igual que `/postgres-readonly-mcp:quitar`.
+- `pgro doctor` — igual que `/postgres-readonly-mcp:doctor`.
+- `pgro crear-rol` — no genera SQL desde la terminal: avisa que esa
+  función depende del modelo y solo existe dentro de Claude Code, vía
+  `/postgres-readonly-mcp:crear-rol`. No es un error, es una limitación de
+  diseño esperada.
+- `pgro ayuda` / `pgro --help` / `pgro -h` — muestra esta misma lista.
+
+Cada subcomando de `pgro` llama exactamente al mismo script bajo
+`scripts/` que su comando `/postgres-readonly-mcp:*` correspondiente — no
+hay lógica duplicada entre los dos caminos.
 
 ## Consideraciones de seguridad
 
@@ -109,14 +193,17 @@ connection string. Cada rol de solo lectura se crea de la misma forma, con
   hasta que alguien la revoque, salvo que tenga fecha de vencimiento.
 - No debe reutilizarse la cuenta de la aplicación — habitualmente cuenta
   con permisos de escritura.
-- El connection string no debe colocarse en `.mcp.json` ni en ningún
-  archivo versionado — únicamente a través del prompt de `userConfig` del
-  plugin.
-- Revisar [`db/create_readonly_role.sql`](db/create_readonly_role.sql):
-  incluye la corrección de un comportamiento conocido de PostgreSQL — en
-  versiones anteriores a la 15, el esquema `public` concede `CREATE` a
-  `PUBLIC` por defecto, de modo que un rol de "solo lectura" podría de
-  todas formas crear tablas si ese privilegio no se revoca explícitamente.
+- **La cadena de conexión real no debe colocarse en `.mcp.json` ni en
+  ningún archivo versionado.** Ese archivo solo contiene una referencia
+  `${VAR}` al nombre de una variable de entorno; el valor real vive
+  exclusivamente en la máquina de cada persona, configurado a mano según
+  las instrucciones que imprime `/postgres-readonly-mcp:sembrar`.
+- Revisar [`db/create_readonly_role.sql`](db/create_readonly_role.sql) (o
+  el SQL generado por `/postgres-readonly-mcp:crear-rol`): incluye la
+  corrección de un comportamiento conocido de PostgreSQL — en versiones
+  anteriores a la 15, el esquema `public` concede `CREATE` a `PUBLIC` por
+  defecto, de modo que un rol de "solo lectura" podría de todas formas
+  crear tablas si ese privilegio no se revoca explícitamente.
 
 ## Licencia
 
