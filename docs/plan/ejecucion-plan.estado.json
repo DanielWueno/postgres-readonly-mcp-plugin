@@ -116,10 +116,11 @@
           "multiagente": false,
           "verificacion": "Con dos alias sembrados en el mismo proyecto, quitar uno deja el otro sin cambios en .mcp.json, y el comando avisa si el alias pedido no existe en vez de fallar en silencio. Si .mcp.json tenía otras entradas mcpServers ajenas a este plugin, quedan intactas. La escritura es atómica (a un archivo temporal + rename), igual que sembrar.js.",
           "horas_maquina": 0.15,
-          "estado": "pendiente",
+          "estado": "hecho",
           "por_que_este_modelo": "Edición de JSON con un caso de error a manejar (alias inexistente) -- no trivial pero tampoco requiere opus.",
           "archivos": "scripts/quitar.js (nuevo), commands/quitar.md (nuevo)",
-          "rollback": "Borrar ambos archivos. Si ya se corrió sobre un .mcp.json real, restaurar desde git en ese repo."
+          "rollback": "Borrar ambos archivos. Si ya se corrió sobre un .mcp.json real, restaurar desde git en ese repo.",
+          "resultado": "Creados scripts/quitar.js y commands/quitar.md, mismo estilo y convenciones que sembrar.js/listar.js (escritura atómica tmp+rename, manejo de BOM, JSON.parse con error claro, nunca lee ni imprime DATABASE_URI). quitar.js elimina solo la entrada pg-ro-<alias> pedida de mcpServers y deja intacto todo lo demás (otras entradas pg-ro-*, servidores MCP ajenos, otras claves top-level); si el alias no existe, avisa explícitamente y sale con exit 1 sin tocar el archivo; sin argumento, exit 1 sin tocar nada. Verificado por mí en un directorio de prueba fuera del repo (no en el subagente que lo implementó): (1) sembrados 'uno' y 'dos', agregada a mano una entrada mcpServers.otro-mcp ajena y una clave top-level 'ajeno' -- quitar 'uno' lo eliminó dejando 'pg-ro-dos', 'otro-mcp' y 'ajeno' exactamente iguales; (2) quitar un alias inexistente ('noexiste') avisó con exit 1 sin modificar el archivo; (3) correr sin argumento dio exit 1 sin tocar el archivo. Directorio de prueba borrado al cerrar."
         },
         {
           "id": "2.5-comando-crear-rol",
