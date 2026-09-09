@@ -202,10 +202,12 @@
           "verificacion": "El README no contiene referencias a scripts/setup.ps1 ni a userConfig.database_uri; sí documenta los siete comandos de Claude Code y el atajo de terminal pgro, requisitos actualizados (uv, no Python+venv), y el paso manual de exportar la variable de entorno en la propia terminal del usuario. Redactado en registro formal de manual de herramienta, sin frases tipo 'esto lo agregamos porque...' ni cronología de la conversación en la que se decidió. Cada capacidad que el texto describe ('podés listar tus conexiones', 'el secreto nunca se guarda en texto plano en el repo', 'podés usar pgro sin abrir Claude Code') tiene, en el propio texto o en un ítem verificable de este ledger, un comando o archivo concreto que lo demuestra -- no una promesa sin respaldo.",
           "verificacion_comando": "! grep -q 'setup.ps1' README.md && ! grep -q 'userConfig' README.md",
           "horas_maquina": 0.4,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "_fecha_inicio": "2026-09-09",
           "por_que_este_modelo": "Reescritura de documentación con criterio editorial -- no es mecánico.",
           "archivos": "README.md",
-          "rollback": "git revert del commit de este ítem."
+          "rollback": "git revert del commit de este ítem.",
+          "resultado": "README.md reescrito de punta a punta para el flujo nuevo, en registro de manual formal (sin narrar por qué se decidió cada cosa ni referirse a ninguna conversación). Documenta los 7 comandos de Claude Code (crear-rol, sembrar, el paso manual de configurar la variable de entorno con $env:/setx, listar, quitar, doctor, ayuda) más el atajo de terminal pgro con sus 6 subcomandos, requisitos actualizados (uv/uvx en PATH -- ya no Python+venv -- y node), y el flujo end-to-end: instalar plugin, crear-rol opcional, sembrar, exportar la variable uno mismo, mantener con listar/quitar/doctor. Se eliminaron por completo las secciones 'Justificación del entorno virtual local' y 'Proyectos con múltiples bases de datos' del README viejo (ya no aplican: uvx no usa venv, y varias bases ahora es el flujo normal de varios alias). Se conservaron y adaptaron 'Cómo se garantiza el acceso de solo lectura' y 'Consideraciones de seguridad', reemplazando las referencias al userConfig/connection-string-pedido-por-Claude-Code por el mecanismo ${VAR} + variable de entorno propia del usuario. Verificado con el verificacion_comando literal del ítem en PowerShell: hasSetup=False, hasUserConfig=False (ninguna coincidencia de 'setup.ps1' ni 'userConfig' en README.md). Verificado también a mano, leyendo el archivo completo, que documenta los 7 comandos y pgro, que no hay lenguaje de bitácora/cronología, y que cada afirmación remite a un comando o script real de los ítems 2.1-2.8 (todos hecho)."
         },
         {
           "id": "3.2-security-md-modelo-amenaza",
