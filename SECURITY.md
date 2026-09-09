@@ -116,6 +116,40 @@ esa persona: revisar qué funciones son ejecutables por el rol de solo lectura
 antes de otorgar `GRANT EXECUTE`, y dimensionar o filtrar las consultas que se
 esperan correr contra tablas grandes.
 
+## Saturación de contexto por volumen de resultados ("context flood")
+
+Distinto de los dos riesgos anteriores: aquí no importa qué tan sensible es el
+dato ni qué efecto secundario dispara la consulta, sino cuántas filas devuelve.
+Una consulta sin filtrar — por ejemplo un `SELECT *` sobre una tabla con miles
+o millones de filas, sin `WHERE` ni `LIMIT` — puede devolver un volumen de
+datos que satura la ventana de contexto del modelo y dispara un consumo de
+tokens grande en la sesión de Claude Code.
+
+Este plugin no impone ningún `LIMIT` sobre las consultas que el usuario escribe
+ni trunca el tamaño del payload de respuesta antes de que llegue al modelo. No
+existe ninguna protección de código, en este plugin ni en la invocación de
+`postgres-mcp` que genera, contra este escenario: la sentencia que arma y envía
+`postgres-mcp` es la que el usuario escribió, sin interceptarla ni reescribirla
+— y así debe ser, porque este plugin no debe alterar las consultas del usuario.
+
+Mitigación recomendada, a cargo de quien escribe la consulta:
+
+- Agregar `LIMIT` y condiciones `WHERE` que acoten el resultado antes de
+  correr una consulta exploratoria sobre una tabla de tamaño desconocido o
+  grande.
+- Paginar consultas que necesiten recorrer una tabla completa, en vez de
+  pedir todas las filas en una sola sentencia.
+- Revisar si la versión de `postgres-mcp` en uso ofrece alguna opción propia
+  de límite de filas o de tamaño de respuesta configurable — no se afirma
+  aquí que exista tal opción; es algo a comprobar contra la documentación de
+  ese paquete antes de asumirlo.
+
+La responsabilidad de acotar el volumen de una consulta es de quien la escribe,
+no de este plugin: el mismo principio de diseño que impide a este plugin
+interceptar o reescribir sentencias SQL (ver "Efectos secundarios y
+agotamiento de recursos" arriba) aplica aquí — el plugin no decide por el
+usuario qué tan grande debe ser un resultado.
+
 ## Revisión del pin de `postgres-mcp`
 
 Este plugin fija `postgres-mcp==0.3.0` junto con `"mcp<2"` al invocar

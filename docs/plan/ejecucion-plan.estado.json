@@ -302,10 +302,12 @@
           "verificacion": "SECURITY.md nombra explícitamente el riesgo de 'context flood' (consulta sin filtrar que devuelve un volumen grande de filas hacia la conversación con el modelo), aclara que no hay LIMIT forzado ni truncamiento de payload en este plugin, y da al menos una mitigación concreta y accionable por el usuario (agregar LIMIT/filtros a la consulta).",
           "verificacion_comando": "grep -qi 'LIMIT' SECURITY.md && grep -qi 'contexto' SECURITY.md",
           "horas_maquina": 0.05,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-09",
           "por_que_este_modelo": "Redacción de riesgo con el mismo criterio editorial que 4.1 -- se agrupan porque tocan el mismo archivo y sección.",
           "archivos": "SECURITY.md",
-          "rollback": "git revert del commit de este ítem."
+          "rollback": "git revert del commit de este ítem.",
+          "resultado": "Agregada a SECURITY.md la sección '## Saturación de contexto por volumen de resultados (\"context flood\")', distinguible de la sección previa de efectos secundarios/agotamiento de recursos (item 4.1). Nombra explícitamente el riesgo (SELECT sin WHERE/LIMIT sobre tabla grande satura la ventana de contexto del modelo y dispara consumo de tokens de la sesión), aclara sin ambigüedad que el plugin no impone LIMIT ni trunca el payload de respuesta, da mitigaciones concretas (agregar LIMIT/WHERE, paginar, revisar si postgres-mcp ofrece límite propio -- sin afirmar que existe) y cierra remitiendo la responsabilidad a quien escribe la consulta, no al plugin. Verificado con el verificacion_comando literal del ítem en PowerShell (equivalente a grep -qi): hasLimit=True, hasContexto=True."
         },
         {
           "id": "4.3-doc-caracteres-especiales-setx",
