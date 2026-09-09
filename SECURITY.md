@@ -13,37 +13,105 @@ visibles para cualquiera.
 Sólo la última publicada. No hay ramas de mantenimiento: un arreglo sale como
 una versión nueva.
 
+## Modelo de amenaza
+
+Este plugin conecta Claude Code a una base PostgreSQL real usando una
+credencial que vive en la máquina del usuario. El diseño se apoya en tres
+mecanismos concretos, verificables en el código de este repositorio:
+
+1. El secreto (`DATABASE_URI`) nunca se escribe en un archivo versionado ni
+   se pega en la conversación con el modelo — solo existe como variable de
+   entorno en la máquina de cada persona.
+2. `/postgres-readonly-mcp:crear-rol` nunca ejecuta SQL ni se conecta a
+   ninguna base — solo imprime texto.
+3. Doble capa contra escritura: rol de Postgres con `GRANT SELECT` únicamente,
+   más `postgres-mcp --access-mode=restricted`, que rechaza escrituras a
+   nivel de parser.
+
+Ninguna de estas garantías cubre el contenido devuelto por un `SELECT`: ese
+dato sí llega a la conversación con el modelo (ver más abajo).
+
 ## Qué importa en este proyecto
 
-Este plugin conecta Claude Code a una base de datos real con una credencial
-que el usuario ingresa. El riesgo no está tanto en el código del plugin —que
-es corto y no ejecuta nada dinámico— como en cómo esa credencial y el modo
-restringido se usan en la práctica:
-
-- **Que `-s local` deje el connection string en texto plano en un archivo
-  versionado.** El patrón documentado para múltiples bases de datos
-  (`claude mcp add ... -e DATABASE_URI=postgresql://usuario:password@...`)
-  escribe la credencial completa en la configuración local de MCP del
-  proyecto destino. Antes de usar ese patrón, confirma que el archivo donde
-  Claude Code guarda los servidores de alcance local en ese proyecto está
-  excluido de git — no es responsabilidad de este plugin, pero es la forma
-  más directa en que una credencial de este flujo termina en un commit.
-- **Que la versión fijada de `postgres-mcp` (`0.3.0`) deje de ser la que
-  realmente se instala.** El pin existe para evitar depender de lo que haya
-  publicado PyPI en el momento de ejecutar `setup.ps1`; si el entorno virtual
-  local (`.venv`) contiene una versión distinta a la declarada, es una señal
-  de que algo en la instalación no se comportó como se documenta.
+- **Que el secreto pase por la conversación con el modelo o por un archivo
+  versionado.** El riesgo concreto es pegar una cadena de conexión
+  (`postgresql://usuario:contraseña@host:puerto/basedatos`) en el chat de
+  Claude Code, o dejarla escrita en `.mcp.json`. El mecanismo que lo evita es
+  el que produce `/postgres-readonly-mcp:sembrar`: la entrada que agrega a
+  `.mcp.json` del proyecto usa siempre una referencia `${PGRO_<PROYECTO>_<ALIAS>}`
+  en `env.DATABASE_URI`, nunca un valor literal, y el comando nunca pide ni
+  acepta una cadena de conexión real — solo el alias corto. El valor real se
+  configura después, a mano, como variable de entorno en la terminal del
+  usuario (`$env:PGRO_<PROYECTO>_<ALIAS> = "..."` o `setx` para que persista),
+  fuera de cualquier archivo del repositorio y fuera de la conversación con el
+  modelo. Un reporte de que `.mcp.json` o cualquier comando de este plugin
+  llegan a contener un secreto en texto plano es una vulnerabilidad real.
+- **Que `/postgres-readonly-mcp:crear-rol` ejecute SQL o se conecte a una
+  base.** Por diseño, este comando solo genera el bloque `CREATE ROLE` /
+  `GRANT` (basado en `db/create_readonly_role.sql`) como texto impreso en el
+  chat, para que el usuario lo corra a mano con sus propias credenciales de
+  administrador (psql, pgAdmin, DBeaver, etc.). Si en algún momento este
+  comando ejecutara SQL directamente o abriera una conexión de red, es una
+  vulnerabilidad real: rompe la garantía de que ningún credential de
+  administrador pasa por el plugin.
 - **Que el rol de solo lectura pueda escribir.** `db/create_readonly_role.sql`
   incluye consultas de verificación al final precisamente para esto — un
   reporte de que el rol creado con ese script permite `INSERT`/`UPDATE`/
   `CREATE` en la práctica es una vulnerabilidad real de este proyecto.
+- **Que `postgres-mcp --access-mode=restricted` acepte una sentencia de
+  escritura o un `COMMIT`/`ROLLBACK`.** Es la segunda capa de la garantía de
+  solo lectura; un reporte reproducible de que el modo restringido deja pasar
+  una de estas sentencias es una vulnerabilidad real, incluso si el rol de
+  base de datos igual la hubiera rechazado.
+
+## Exposición de datos sensibles vía consultas de lectura
+
+El modo restringido evita la escritura, pero no evita que el **contenido**
+devuelto por un `SELECT` llegue a la conversación con el modelo — incluyendo
+PII u otros datos sensibles, aunque la base de datos nunca sea modificada.
+Esto no es un defecto a corregir en el código del plugin: es una propiedad
+inherente de exponer resultados de consultas a través de MCP, y por eso se
+trata como parte del modelo de amenaza, no como "no es una vulnerabilidad".
+
+Mitigación recomendada (ya documentada en el README, sección "Consideraciones
+de seguridad"): excluir del `GRANT` las columnas o tablas sensibles al
+definir el rol de solo lectura, otorgando `SELECT` por columna o a través de
+vistas que omitan esos campos, en lugar de `GRANT SELECT ON ALL TABLES IN
+SCHEMA`. Para tareas que no requieren ver contenido real, escribir la consulta
+para que devuelva un veredicto o diferencias agregadas (`COUNT`, `IS DISTINCT
+FROM`, hashes) en vez de las filas completas reduce lo que efectivamente llega
+al modelo.
+
+## Revisión del pin de `postgres-mcp`
+
+Este plugin fija `postgres-mcp==0.3.0` junto con `"mcp<2"` al invocar
+`uvx --system-certs --from postgres-mcp==0.3.0 --with "mcp<2" postgres-mcp --access-mode=restricted`.
+Ese pin debe revisarse por vulnerabilidades conocidas bajo estas dos
+condiciones, no de forma ad hoc:
+
+1. **Antes de cada release de este plugin** — como parte de preparar la
+   versión nueva, antes de publicar el tag.
+2. **Ante cualquier CVE o advisory reportado contra `postgres-mcp` o contra
+   `mcp` dentro del rango de versión fijado** (`postgres-mcp==0.3.0`,
+   `mcp<2`), apenas se tenga noticia de él — sin esperar al próximo release
+   programado del plugin.
+
+Si la revisión encuentra una vulnerabilidad aplicable, el arreglo es subir el
+pin a una versión corregida (o fijar un rango que la excluya) en todos los
+lugares donde aparece: este documento, el README y `commands/sembrar.md` (que
+es de donde sale el `.mcp.json` generado).
 
 ## Qué no es una vulnerabilidad
 
+- **Que el rol de solo lectura no tenga fecha de caducidad si quien lo creó no
+  se la puso.** El README recomienda `ALTER ROLE ... VALID UNTIL`; que no se
+  use es una decisión operativa de quien administra la base, no un defecto de
+  este plugin.
 - **Que el contenido de las tablas consultadas llegue al modelo.** Es el
-  comportamiento esperado de un acceso de lectura vía MCP y está documentado
-  en el README como decisión de gobierno de datos de cada equipo, no como
-  algo que este plugin deba impedir.
-- **Que la credencial no tenga fecha de caducidad si el equipo que la creó no
-  se la puso.** El README recomienda `VALID UNTIL`; que no se use es una
-  decisión operativa de quien administra la base, no un defecto del plugin.
+  comportamiento esperado y documentado de un acceso de lectura vía MCP (ver
+  "Exposición de datos sensibles" arriba), no algo que este plugin deba
+  impedir por sí solo.
+- **Que una conexión sembrada falle por falta de `uv`/`uvx` en `PATH`, o
+  porque la variable de entorno esperada no está seteada en la sesión
+  actual.** `/postgres-readonly-mcp:doctor` diagnostica exactamente estos dos
+  casos; son errores de entorno local, no fallas de este plugin.
