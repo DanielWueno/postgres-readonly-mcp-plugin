@@ -88,10 +88,11 @@
           "verificacion": "El comando existe con frontmatter description, invoca scripts/sembrar.js vía ${CLAUDE_PLUGIN_ROOT}, y no contiene ningún texto que le pida al usuario pegar la cadena de conexión en el chat. La salida explica en lenguaje sin jerga qué acaba de pasar (se preparó la conexión, falta un paso tuyo) y qué es exactamente lo que hay que hacer con las dos líneas que imprime -- no asume que quien lee ya sabe qué es una variable de entorno, un perfil de PowerShell, o setx.",
           "verificacion_comando": "[ -f commands/sembrar.md ] && grep -q 'sembrar.js' commands/sembrar.md",
           "horas_maquina": 0.02,
-          "estado": "pendiente",
+          "estado": "hecho",
           "por_que_este_modelo": "Es un wrapper delgado sobre el script del ítem anterior.",
           "archivos": "commands/sembrar.md (nuevo)",
-          "rollback": "Borrar commands/sembrar.md."
+          "rollback": "Borrar commands/sembrar.md.",
+          "resultado": "Creado commands/sembrar.md: expone el comando, invoca scripts/sembrar.js vía ${CLAUDE_PLUGIN_ROOT}, nunca pide pegar una cadena de conexión en el chat, y explica en lenguaje llano qué pasó y las dos líneas ($env:<VAR> para el perfil, setx <VAR> para dejarlo permanente) con el nombre de variable resuelto por el propio script. Verificado con el verificacion_comando literal del ítem: archivo existe y contiene 'sembrar.js' (exit 0)."
         },
         {
           "id": "2.3-listar",
