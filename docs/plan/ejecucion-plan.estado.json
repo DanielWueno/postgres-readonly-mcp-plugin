@@ -286,10 +286,12 @@
           "verificacion": "SECURITY.md nombra explícitamente ambos riesgos (funciones con efectos secundarios ejecutables vía SELECT, y agotamiento de recursos previo al timeout) en texto propio, distinto de la sección ya existente sobre exposición de datos, y aclara sin ambigüedad que la mitigación no está en manos de este plugin sino de quien administra la base (revisar qué funciones son ejecutables por el rol de solo lectura) o del propio postgres-mcp. No promete ninguna protección que el código no tiene.",
           "verificacion_comando": "grep -qi 'efectos secundarios' SECURITY.md && grep -qi 'SECURITY DEFINER' SECURITY.md && grep -qi 'statement_timeout' SECURITY.md",
           "horas_maquina": 0.05,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-09",
           "por_que_este_modelo": "Es redacción de riesgo con criterio editorial (qué tan explícito, dónde ubicarlo, no sobre-prometer) -- no un chequeo mecánico, pero tampoco requiere diseño nuevo.",
           "archivos": "SECURITY.md",
-          "rollback": "git revert del commit de este ítem."
+          "rollback": "git revert del commit de este ítem.",
+          "resultado": "Agregada a SECURITY.md la sección 'Efectos secundarios y agotamiento de recursos en consultas de solo lectura', distinguible de la ya existente sobre exposición de datos sensibles. Documenta que un SELECT puede invocar funciones con SECURITY DEFINER, pg_notify u otros efectos secundarios sin que el rol de solo lectura ni postgres-mcp --access-mode=restricted lo detecten (verifican la forma de la sentencia, no el comportamiento de las funciones que invoca), y que una consulta pesada puede agotar CPU/memoria antes de llegar al statement_timeout configurado por crear-rol. Aclara explícitamente que ninguno de los dos es mitigable desde el código del plugin porque dependen del parser interno de postgres-mcp (paquete externo) y de qué funciones/datos expone el rol -- responsabilidad de quien administra la base. Verificado con el verificacion_comando literal del ítem en PowerShell (equivalente a grep -qi): efectos_secundarios=True, SECURITY DEFINER=True, statement_timeout=True (los tres coinciden tras corregir un salto de línea que partía 'SECURITY DEFINER' en dos líneas y rompía el match)."
         },
         {
           "id": "4.2-doc-riesgo-context-flood",
