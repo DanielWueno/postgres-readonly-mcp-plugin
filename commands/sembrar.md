@@ -44,3 +44,14 @@ variable de entorno:
 
    Aclarame que `setx` requiere abrir una terminal nueva para que el valor surta efecto, y que la
    cadena de conexión la tiene que completar la persona que lea esto — nunca yo.
+
+   Explicame también, de forma explícita y accionable, la advertencia sobre contraseñas con
+   caracteres especiales: si la contraseña contiene alguno de estos caracteres — `@ : / # %
+   espacio "` — puede romper el parseo de la cadena `postgresql://usuario:contraseña@host:puerto/basedatos`
+   (por ejemplo, una `@` en la contraseña se confunde con el separador entre credenciales y host;
+   una `:` adicional se confunde con el separador entre usuario y contraseña; un `#` puede
+   truncarse como si fuera un fragmento de URL). Aclarame además que `setx` puede corromper
+   valores con comillas o caracteres especiales si el argumento no queda bien delimitado. Decime
+   que dé el paso concreto para evitarlo: URL-encodear solo la contraseña (no la cadena completa)
+   con `[uri]::EscapeDataString("p@ss:word")` en PowerShell (esto devuelve `p%40ss%3Aword`), y
+   envolver siempre el valor completo de la URI entre comillas dobles al usar `$env:` o `setx`.
