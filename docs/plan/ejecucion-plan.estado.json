@@ -102,10 +102,11 @@
           "multiagente": false,
           "verificacion": "Corriendo el comando en un proyecto con conexiones sembradas, lista únicamente los alias de ESE .mcp.json -- no lee ni menciona configuración de ningún otro proyecto ni de ~/.claude.json global.",
           "horas_maquina": 0.15,
-          "estado": "pendiente",
+          "estado": "hecho",
           "por_que_este_modelo": "Lectura y formateo simple, pero el límite de 'solo este proyecto' es una decisión que vale la pena revisar con criterio.",
           "archivos": "scripts/listar.js (nuevo), commands/listar.md (nuevo)",
-          "rollback": "Borrar ambos archivos."
+          "rollback": "Borrar ambos archivos.",
+          "resultado": "Creados scripts/listar.js y commands/listar.md. listar.js lee .mcp.json de process.cwd() (nunca otro directorio ni ~/.claude.json global), filtra solo claves mcpServers que empiezan con 'pg-ro-', e imprime por cada una el alias y el nombre de la variable de entorno esperada extraído de env.DATABASE_URI (patrón ${VAR}) -- nunca un valor real. Si no existe .mcp.json o no tiene entradas pg-ro-*, imprime un mensaje claro y sale con exit 0 (no es error). Verificado por mí en un directorio de prueba fuera del repo (no en el subagente que lo implementó): (1) sembradas 'prod' y 'staging', listar.js mostró solo esos dos alias con sus variables; (2) agregada a mano una entrada 'otro-server' ajena con una cadena de conexión real ficticia (postgres://user:realsecret@host/db) en el mismo .mcp.json -- no apareció en el listado ni la cadena real se imprimió en ningún lado; (3) en un directorio sin .mcp.json, exit 0 con mensaje claro de que no hay conexiones. Directorios de prueba borrados al cerrar."
         },
         {
           "id": "2.4-quitar",
