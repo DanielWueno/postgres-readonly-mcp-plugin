@@ -262,10 +262,75 @@
           "multiagente": false,
           "verificacion": "El tag existe en el remoto, apunta exactamente al commit de main donde CHANGELOG.md y plugin.json ya dicen 2.0.0 (no a un commit posterior ni anterior). Este ítem requiere confirmación explícita del autor antes de crear y pushear el tag -- es una acción visible hacia afuera, no se hace en automode.",
           "horas_maquina": 0.02,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-09",
           "por_que_este_modelo": "Es mecánico (git tag + push), pero el momento exacto y la confirmación de crearlo sí importan.",
           "archivos": "Ninguno -- es un tag de git, no un archivo.",
-          "rollback": "El tag se puede borrar del remoto (git push --delete) si se creó sobre el commit equivocado; no afecta código."
+          "rollback": "El tag se puede borrar del remoto (git push --delete) si se creó sobre el commit equivocado; no afecta código.",
+          "resultado": "Tag postgres-readonly-mcp--v2.0.0 creado localmente e inmediatamente pusheado al remoto (git push origin postgres-readonly-mcp--v2.0.0). El tag apunta a be7fa2d, exactamente el commit de main donde 3.4 cerró (Merge pull request #14 desde 3.4-changelog-version-bump). Verificado con 'git rev-list -n 1 postgres-readonly-mcp--v2.0.0' que devolvió be7fa2df7636c9b1ee827270a034d5c3c34268f1 (coincide con git log --oneline)."
+        }
+      ]
+    },
+    {
+      "ola": 4,
+      "nombre": "Riesgos residuales de una auditoría externa post-2.0.0: documentar lo que no se puede mitigar en código, corregir lo que sí",
+      "criterio_de_entrada": "Ola 3 cerrada: v2.0.0 taggeado y publicado.",
+      "criterio_de_salida": "SECURITY.md y README.md documentan explícitamente, como limitaciones conocidas y no mitigadas por este plugin, los riesgos de (a) funciones con efectos secundarios ejecutables dentro de un SELECT, (b) agotamiento de CPU/memoria antes de llegar a statement_timeout, (c) ausencia de LIMIT/truncamiento de payload (context flood), y (d) corrupción de contraseñas con caracteres especiales al usar setx/$env; y scripts/sembrar.js avisa explícitamente ante una colisión de nombre de variable de entorno entre alias distintos del mismo proyecto, en vez de sembrar en silencio dos conexiones que comparten secreto sin que el usuario se entere.",
+      "items": [
+        {
+          "id": "4.1-doc-riesgo-side-effects-y-dos",
+          "titulo": "SECURITY.md documenta, en una sección distinguible de la ya existente sobre exposición de datos sensibles, que 'solo lectura' no impide que un SELECT dispare funciones con efectos secundarios (SECURITY DEFINER, pg_notify, procedimientos que auditan o notifican) ni que una consulta analítica pesada sature CPU/memoria antes de llegar a statement_timeout, aclarando que ninguno de los dos es mitigable desde este plugin porque dependen del parser interno de postgres-mcp (paquete externo), no de código propio",
+          "modelo": "sonnet",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "SECURITY.md nombra explícitamente ambos riesgos (funciones con efectos secundarios ejecutables vía SELECT, y agotamiento de recursos previo al timeout) en texto propio, distinto de la sección ya existente sobre exposición de datos, y aclara sin ambigüedad que la mitigación no está en manos de este plugin sino de quien administra la base (revisar qué funciones son ejecutables por el rol de solo lectura) o del propio postgres-mcp. No promete ninguna protección que el código no tiene.",
+          "verificacion_comando": "grep -qi 'efectos secundarios' SECURITY.md && grep -qi 'SECURITY DEFINER' SECURITY.md && grep -qi 'statement_timeout' SECURITY.md",
+          "horas_maquina": 0.05,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Es redacción de riesgo con criterio editorial (qué tan explícito, dónde ubicarlo, no sobre-prometer) -- no un chequeo mecánico, pero tampoco requiere diseño nuevo.",
+          "archivos": "SECURITY.md",
+          "rollback": "git revert del commit de este ítem."
+        },
+        {
+          "id": "4.2-doc-riesgo-context-flood",
+          "titulo": "SECURITY.md (sección de Consideraciones de seguridad o una nueva) documenta explícitamente que este plugin no impone LIMIT ni trunca el tamaño de la respuesta de una consulta, que un SELECT * sobre una tabla grande puede saturar la ventana de contexto del modelo y el consumo de tokens de la sesión, y que la mitigación (filtrar, paginar, o revisar si postgres-mcp ofrece alguna opción propia de límite) es responsabilidad de quien escribe la consulta, no de este plugin",
+          "modelo": "sonnet",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "SECURITY.md nombra explícitamente el riesgo de 'context flood' (consulta sin filtrar que devuelve un volumen grande de filas hacia la conversación con el modelo), aclara que no hay LIMIT forzado ni truncamiento de payload en este plugin, y da al menos una mitigación concreta y accionable por el usuario (agregar LIMIT/filtros a la consulta).",
+          "verificacion_comando": "grep -qi 'LIMIT' SECURITY.md && grep -qi 'contexto' SECURITY.md",
+          "horas_maquina": 0.05,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Redacción de riesgo con el mismo criterio editorial que 4.1 -- se agrupan porque tocan el mismo archivo y sección.",
+          "archivos": "SECURITY.md",
+          "rollback": "git revert del commit de este ítem."
+        },
+        {
+          "id": "4.3-doc-caracteres-especiales-setx",
+          "titulo": "README.md, commands/sembrar.md y commands/ayuda.md, en el paso de exportar la variable de entorno con $env:/setx, advierten que una contraseña con caracteres especiales (@ : / # % espacio comillas) puede romper el parseo de la URI postgresql:// o corromperse al pasar por setx, y dan el paso concreto para evitarlo (URL-encodear la contraseña con un carácter especial, o envolver el valor completo entre comillas simples al setearlo en PowerShell)",
+          "modelo": "sonnet",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "Los tres archivos (README.md, commands/sembrar.md, commands/ayuda.md) incluyen, en el paso de exportar la variable, una advertencia explícita sobre caracteres especiales en la contraseña y un paso concreto para evitar que se rompa el parseo de la URI o el propio comando setx -- no una mención genérica de 'tené cuidado'.",
+          "verificacion_comando": "grep -qi 'caracteres especiales\\|encodeURIComponent\\|URL.encod' README.md commands/sembrar.md commands/ayuda.md",
+          "horas_maquina": 0.05,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Redacción de una advertencia técnica precisa (qué caracteres, por qué rompen, cómo evitarlo) -- no es copiar una plantilla genérica.",
+          "archivos": "README.md, commands/sembrar.md, commands/ayuda.md",
+          "rollback": "git revert del commit de este ítem."
+        },
+        {
+          "id": "4.4-colision-alias-mismo-env-var",
+          "titulo": "scripts/sembrar.js detecta cuando el nombre de variable de entorno derivado de un alias nuevo (PGRO_<PROYECTO>_<ALIAS>) ya está en uso por otra entrada pg-ro-* existente en el mismo .mcp.json bajo un alias distinto, y avisa explícitamente en vez de sembrar en silencio dos servidores que terminarían compartiendo el mismo secreto sin que el usuario lo sepa",
+          "modelo": "sonnet",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "Sembrando dos alias distintos que sanitizan al mismo token de variable (ej. 'prod' y 'prod!', ambos derivan PGRO_<PROYECTO>_PROD), la segunda siembra avisa explícitamente sobre la colisión de nombre de variable antes de escribir, en vez de crear dos entradas mcpServers silenciosamente apuntando a la misma variable de entorno. Re-sembrar el mismo alias (no hay colisión real: es la misma entrada) sigue actualizando esa entrada sin verse afectado por este cambio, igual que hoy.",
+          "horas_maquina": 0.1,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Requiere decidir la forma del aviso (bloquear vs. advertir y continuar) y no romper el caso ya cubierto de re-sembrar el mismo alias -- criterio de diseño chico pero real.",
+          "archivos": "scripts/sembrar.js",
+          "rollback": "git revert del commit de este ítem; sembrar.js vuelve a no detectar colisiones."
         }
       ]
     }
