@@ -262,10 +262,12 @@
           "multiagente": false,
           "verificacion": "El tag existe en el remoto, apunta exactamente al commit de main donde CHANGELOG.md y plugin.json ya dicen 2.0.0 (no a un commit posterior ni anterior). Este ítem requiere confirmación explícita del autor antes de crear y pushear el tag -- es una acción visible hacia afuera, no se hace en automode.",
           "horas_maquina": 0.02,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-09",
           "por_que_este_modelo": "Es mecánico (git tag + push), pero el momento exacto y la confirmación de crearlo sí importan.",
           "archivos": "Ninguno -- es un tag de git, no un archivo.",
-          "rollback": "El tag se puede borrar del remoto (git push --delete) si se creó sobre el commit equivocado; no afecta código."
+          "rollback": "El tag se puede borrar del remoto (git push --delete) si se creó sobre el commit equivocado; no afecta código.",
+          "resultado": "Tag postgres-readonly-mcp--v2.0.0 creado localmente e inmediatamente pusheado al remoto (git push origin postgres-readonly-mcp--v2.0.0). El tag apunta a be7fa2d, exactamente el commit de main donde 3.4 cerró (Merge pull request #14 desde 3.4-changelog-version-bump). Verificado con 'git rev-list -n 1 postgres-readonly-mcp--v2.0.0' que devolvió be7fa2df7636c9b1ee827270a034d5c3c34268f1 (coincide con git log --oneline)."
         }
       ]
     }
