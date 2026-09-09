@@ -131,10 +131,11 @@
           "verificacion": "El comando pide únicamente nombres de esquema, nunca una URI ni contraseña. Toda la salida -- SQL, explicación y pasos -- se imprime directo en la consola del chat, no se escribe a un archivo nuevo que el usuario deba localizar. La explicación cubre, en lenguaje sin jerga: qué es este rol y para qué sirve, por qué debe ser de solo lectura, qué programa usar para ejecutar el SQL (ej. psql o el cliente gráfico que ya tenga) y los pasos exactos para pegarlo y correrlo ahí. El SQL generado incluye un ALTER ROLE ... SET statement_timeout con un valor conservador documentado (y por qué ese valor). La explicación nombra explícitamente que el modo solo-lectura no protege contra exposición de datos sensibles en la conversación, y sugiere revisar qué columnas/tablas entran en el GRANT antes de correrlo. Incluye una advertencia visible de 'esto es solo para desarrollo, corrélo vos mismo'. No incluye ninguna invocación a psql ni a un driver de conexión desde el propio comando, y es opcional (el flujo de sembrar/listar/quitar no depende de haberlo corrido).",
           "verificacion_comando": "[ -f commands/crear-rol.md ] && ! grep -qiE 'DATABASE_URI|password=' commands/crear-rol.md && grep -qi 'statement_timeout' commands/crear-rol.md",
           "horas_maquina": 0.2,
-          "estado": "pendiente",
+          "estado": "en_curso",
           "por_que_este_modelo": "La advertencia, el límite de qué NO debe hacer el comando, el valor de timeout razonable, y explicar esto para alguien sin trasfondo técnico son decisiones de diseño, no un chequeo mecánico.",
           "archivos": "commands/crear-rol.md (nuevo)",
-          "rollback": "Borrar commands/crear-rol.md."
+          "rollback": "Borrar commands/crear-rol.md.",
+          "fecha_inicio": "2026-09-09"
         },
         {
           "id": "2.6-comando-doctor",
