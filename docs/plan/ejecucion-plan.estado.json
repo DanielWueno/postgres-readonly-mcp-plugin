@@ -33,10 +33,12 @@
           "verificacion": "El comando corre y termina con código 0, probando que uv/uvx están disponibles y que el pin de versión (postgres-mcp==0.3.0, mcp<2) resuelve sin conflicto de dependencias.",
           "verificacion_comando": "uvx --from postgres-mcp==0.3.0 --with \"mcp<2\" postgres-mcp --access-mode=restricted --help",
           "horas_maquina": 0.05,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-08",
           "por_que_este_modelo": "Solo corre un comando y lee el código de salida -- no hay criterio de diseño que decidir.",
           "archivos": "Ninguno -- es una prueba de humo, no toca código.",
-          "rollback": "No aplica: no cambia ningún archivo. Si falla, el ítem se marca bloqueado hasta resolver el pin de versión o instalar uv, no se revierte nada."
+          "rollback": "No aplica: no cambia ningún archivo. Si falla, el ítem se marca bloqueado hasta resolver el pin de versión o instalar uv, no se revierte nada.",
+          "resultado": "uv 0.12.10 instalado desde GitHub en C:\\Users\\dsoft03.corp\\AppData\\Local\\Programs\\uv\\bin\\uv.exe. Smoke test ejecutado con exit code 0: uvx --from postgres-mcp==0.3.0 --with \"mcp<2\" postgres-mcp --access-mode=restricted --help retorna help text de postgres-mcp sin errores, probando que el pin de versión resuelve sin conflictos de dependencia."
         },
         {
           "id": "1.3-borrar-venv-scripts",
