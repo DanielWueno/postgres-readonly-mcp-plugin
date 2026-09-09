@@ -82,6 +82,40 @@ para que devuelva un veredicto o diferencias agregadas (`COUNT`, `IS DISTINCT
 FROM`, hashes) en vez de las filas completas reduce lo que efectivamente llega
 al modelo.
 
+## Efectos secundarios y agotamiento de recursos en consultas de solo lectura
+
+Distinto del riesgo de exposición de datos de la sección anterior: "solo
+lectura" garantiza que no se ejecuta `INSERT`/`UPDATE`/`DELETE`/`COMMIT`, pero
+no garantiza que un `SELECT` sea inofensivo en sí mismo.
+
+- **Funciones con efectos secundarios ejecutables dentro de un `SELECT`.**
+  PostgreSQL permite invocar funciones desde un `SELECT` (`SELECT
+  mi_funcion(...)`). Si alguna de esas funciones está marcada
+  `SECURITY DEFINER`, llama a `pg_notify`, escribe a una tabla de auditoría, o
+  dispara cualquier otro efecto secundario, ese efecto ocurre igual aunque la
+  sentencia en sí sea sintácticamente un `SELECT` y el rol no tenga `GRANT` de
+  escritura sobre ninguna tabla. Ni el rol de solo lectura ni
+  `postgres-mcp --access-mode=restricted` inspeccionan el cuerpo de las
+  funciones que el rol tiene permiso de ejecutar — ambos verifican la forma de
+  la sentencia entrante (parser), no el comportamiento interno de las
+  funciones que esa sentencia invoca.
+- **Agotamiento de CPU o memoria antes de llegar a `statement_timeout`.** El
+  `ALTER ROLE ... SET statement_timeout` que genera
+  `/postgres-readonly-mcp:crear-rol` corta una consulta que sigue corriendo
+  después de ese tiempo, pero no impide que una consulta analítica pesada
+  (un `JOIN` grande sin índice, una agregación sobre una tabla enorme) consuma
+  toda la CPU o memoria disponible del servidor mientras corre, incluso dentro
+  del límite de tiempo configurado.
+
+Ninguno de los dos es mitigable desde el código de este plugin: ambos
+dependen de qué sentencia concreta arma y envía `postgres-mcp` (paquete
+externo fijado por el pin de versión, ver más abajo) contra la base, y de qué
+funciones y qué volumen de datos expone el rol — decisiones de quien
+administra la base, no de este plugin. La mitigación real está en manos de
+esa persona: revisar qué funciones son ejecutables por el rol de solo lectura
+antes de otorgar `GRANT EXECUTE`, y dimensionar o filtrar las consultas que se
+esperan correr contra tablas grandes.
+
 ## Revisión del pin de `postgres-mcp`
 
 Este plugin fija `postgres-mcp==0.3.0` junto con `"mcp<2"` al invocar
