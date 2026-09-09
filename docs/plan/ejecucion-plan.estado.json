@@ -146,11 +146,12 @@
           "multiagente": false,
           "verificacion": "Corriendo el comando en un proyecto de prueba con una conexión sembrada cuya variable NO está seteada, la salida identifica esa conexión puntual como la causa probable de un fallo, en una frase en lenguaje llano que no requiere leer un stack trace ni saber qué es una expansión de variable. Corriendo el comando sin uv instalado (o simulando su ausencia), avisa eso como bloqueante antes que cualquier otra cosa, con el paso concreto para instalarlo. No requiere que ninguna base de datos esté realmente accesible para dar un diagnóstico útil.",
           "horas_maquina": 0.2,
-          "estado": "en_curso",
+          "estado": "hecho",
           "_fecha_inicio": "2026-09-09",
           "por_que_este_modelo": "Diagnosticar y priorizar cuál de varias causas posibles es la más probable es una decisión de diseño, no una lectura mecánica de estado.",
           "archivos": "scripts/doctor.js (nuevo), commands/doctor.md (nuevo)",
-          "rollback": "Borrar ambos archivos."
+          "rollback": "Borrar ambos archivos.",
+          "resultado": "Creados scripts/doctor.js y commands/doctor.md, mismas convenciones que listar.js/sembrar.js/quitar.js (CommonJS sin dependencias, manejo de BOM, nunca imprime valores reales). doctor.js revisa en orden: (1) presencia de `uv` en PATH vía `spawnSync(\"uv\", [\"--version\"])` sin shell -- si falta, corta ahí mismo con aviso [BLOQUEANTE] y el link oficial de instalación de uv, sin mirar conexiones ni variables; (2) conexiones pg-ro-* en .mcp.json del cwd (mismo manejo que listar.js, mensaje claro si no hay .mcp.json o no hay entradas); (3) por cada conexión, si su variable de entorno (extraída del patrón ${VAR} en env.DATABASE_URI) está seteada en process.env de la sesión actual -- si no, la marca explícitamente como PROBABLE CAUSA DE FALLO explicando en lenguaje llano por qué (Node no expande ${VAR}, esa resolución la hace Claude Code al lanzar el servidor). Nunca invoca uvx/postgres-mcp ni intenta conectividad real. Verificado por mí (no solo por el subagente que lo implementó) en directorios de prueba fuera del repo: (1) conexión sembrada con su variable sin setear -- doctor.js la señaló puntualmente como PROBABLE CAUSA DE FALLO; (2) misma conexión tras setear la variable en el proceso -- reportó OK y resumen sin problemas; (3) PATH restringido a solo node+System32 (sin uv) -- reportó el bloqueo de uv primero y no llegó a mirar .mcp.json. Los tres escenarios exigidos por el criterio del ítem pasaron. Directorios de prueba borrados al cerrar."
         },
         {
           "id": "2.7-comando-ayuda",
