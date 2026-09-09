@@ -217,10 +217,11 @@
           "multiagente": false,
           "verificacion": "SECURITY.md nombra explícitamente el riesgo de pegar una cadena de conexión en el chat y cómo este plugin lo evita (referencia ${VAR} + variable de entorno propia del usuario), aclara que crear-rol solo genera texto y nunca ejecuta nada, dedica una sección aparte al riesgo de exposición de datos sensibles vía consultas de solo lectura (distinto del riesgo de escritura) con la mitigación recomendada (excluir columnas/tablas sensibles del GRANT), y dice explícitamente cada cuánto o bajo qué condición se revisa el pin postgres-mcp==0.3.0 por vulnerabilidades conocidas. Registro formal: sin anécdota de por qué se decidió cada cosa, cada afirmación de riesgo o mitigación remite a un mecanismo real del código (no una intención).",
           "horas_maquina": 0.25,
-          "estado": "pendiente",
+          "estado": "hecho",
           "por_que_este_modelo": "Requiere entender el modelo de amenaza real del cambio, no copiar una plantilla genérica.",
           "archivos": "SECURITY.md",
-          "rollback": "git revert del commit de este ítem."
+          "rollback": "git revert del commit de este ítem.",
+          "resultado": "SECURITY.md reescrito de punta a punta, eliminando toda referencia a setup.ps1, .venv y al patrón viejo `claude mcp add -e DATABASE_URI=`. Nueva sección 'Modelo de amenaza' resume los tres mecanismos reales (secreto solo como variable de entorno propia, crear-rol nunca ejecuta SQL ni se conecta a nada, doble capa rol+postgres-mcp contra escritura). 'Qué importa en este proyecto' remite cada riesgo al mecanismo real (${PGRO_<PROYECTO>_<ALIAS>} en env.DATABASE_URI de sembrar.js, db/create_readonly_role.sql, --access-mode=restricted). Sección aparte 'Exposición de datos sensibles vía consultas de lectura' (distinta de la de escritura) documenta que el contenido de un SELECT sí llega al modelo y remite a la mitigación real ya en el README (excluir columnas/tablas sensibles del GRANT, por columna o vistas). Sección 'Revisión del pin de postgres-mcp' fija dos condiciones explícitas y no ad hoc: antes de cada release del plugin, y ante cualquier CVE/advisory contra postgres-mcp o mcp en el rango fijado (0.3.0, mcp<2). Verificado por mí (no solo por el subagente que lo redactó): confirmado con Test-Path que db/create_readonly_role.sql y commands/sembrar.md (los dos archivos que SECURITY.md cita como respaldo) existen, y que create_readonly_role.sql efectivamente incluye las consultas de verificación CREATE TABLE/INSERT que SECURITY.md dice que incluye. Registro formal, sin narrar por qué se decidió cada cosa ni referirse a esta conversación."
         },
         {
           "id": "3.3-e2e-manual-sembrar-a-mcp-vivo",
