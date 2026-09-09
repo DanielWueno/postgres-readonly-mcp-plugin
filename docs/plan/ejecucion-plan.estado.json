@@ -335,6 +335,40 @@
           "rollback": "git revert del commit de este ítem; sembrar.js vuelve a no detectar colisiones."
         }
       ]
+    },
+    {
+      "ola": 5,
+      "nombre": "Publicación: bump de versión y tag, al cierre de esta tanda",
+      "criterio_de_entrada": "Ola 4 cerrada: todos sus ítems (4.1-4.4) hecho y mergeados a main.",
+      "criterio_de_salida": "CHANGELOG.md y plugin.json declaran la versión nueva que agrupa todo lo mergeado en la ola 4, y existe un tag inmutable sobre ese commit de main -- siguiendo la política de versionado ya explícita en la skill plugin-conventions (bump al final de la tanda, nunca ítem por ítem; ver items 3.4/3.5 de este mismo ledger como precedente).",
+      "items": [
+        {
+          "id": "5.1-changelog-version-bump-ola4",
+          "titulo": "CHANGELOG.md tiene una entrada nueva describiendo lo agregado en la ola 4 (documentación de riesgos residuales: side-effects/DoS, context flood, caracteres especiales en setx; y la detección de colisión de alias en sembrar.js) y plugin.json sube de versión acorde a SemVer -- se cierra al final, con todo lo demás de la ola 4 ya mergeado a main, nunca antes",
+          "modelo": "sonnet",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "CHANGELOG.md tiene una sección nueva con la fecha del día en que se cierra el ítem, listando los cambios de 4.1-4.4 en lenguaje llano (qué se documentó, qué se corrigió en sembrar.js); plugin.json.version queda en la versión nueva acordada (SemVer: menor si 4.4 solo agrega una advertencia sin romper compatibilidad de .mcp.json existentes, ver criterio en la skill plugin-conventions); en el momento de cerrar este ítem, todos los ítems 4.1-4.4 ya están hecho y mergeados a main.",
+          "horas_maquina": 0.02,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Redacción breve siguiendo Keep a Changelog -- no requiere opus.",
+          "archivos": "CHANGELOG.md, .claude-plugin/plugin.json",
+          "rollback": "git revert del commit de este ítem."
+        },
+        {
+          "id": "5.2-tag-release-ola4",
+          "titulo": "Existe un tag inmutable postgres-readonly-mcp--vX.Y.Z (la versión que fija 5.1) sobre el commit de main que cierra ese ítem, siguiendo la convención de tags con nombre de proyecto de los demás repos del autor",
+          "modelo": "haiku",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "El tag existe en el remoto, apunta exactamente al commit de main donde CHANGELOG.md y plugin.json ya dicen la versión nueva (no a un commit posterior ni anterior). Este ítem requiere confirmación explícita del autor antes de crear y pushear el tag -- es una acción visible hacia afuera, no se hace en automode.",
+          "horas_maquina": 0.02,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Es mecánico (git tag + push), pero el momento exacto y la confirmación de crearlo sí importan.",
+          "archivos": "Ninguno -- es un tag de git, no un archivo.",
+          "rollback": "El tag se puede borrar del remoto (git push --delete) si se creó sobre el commit equivocado; no afecta código."
+        }
+      ]
     }
   ]
 }
