@@ -415,10 +415,12 @@
           "multiagente": false,
           "verificacion": "El comando existe, pide al usuario qué alias pg-ro-<alias> usar (nunca asume uno), y la consulta que instruye a correr es estrictamente SELECT sobre pg_stat_activity -- ningún verbo de escritura ni llamada a función con efecto (pg_terminate_backend, pg_cancel_backend) en este comando. La instrucción trunca o limita explícitamente el campo de la query en curso (ej. primeros N caracteres) para reducir exposición de datos sensibles en el chat, siguiendo el mismo criterio que la sección de 'context flood' de SECURITY.md (4.2).",
           "horas_maquina": 0.15,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-10",
           "por_que_este_modelo": "Diseñar qué columnas mostrar y cómo truncar la query en curso sin perder utilidad diagnóstica es una decisión de criterio, no una plantilla mecánica.",
           "archivos": "commands/conexiones.md (nuevo)",
-          "rollback": "Borrar commands/conexiones.md."
+          "rollback": "Borrar commands/conexiones.md.",
+          "resultado": "Creado commands/conexiones.md: expone /postgres-readonly-mcp:conexiones. Nunca asume un alias -- si $ARGUMENTS viene vacío mira .mcp.json o corre scripts/listar.js y pregunta explícitamente cuál usar, incluso si hay uno solo sembrado. La consulta instruida es exclusivamente un SELECT sobre pg_stat_activity (pid, usename, application_name, client_addr, state, query_start, LEFT(query, 100) AS query_preview), con pid <> pg_backend_pid() para excluir la propia sesión de diagnóstico. El texto prohíbe explícitamente cualquier verbo de escritura y las llamadas a pg_terminate_backend/pg_cancel_backend (que solo aparecen como prohibición, nunca en la consulta real ni como acción propuesta), y aclara que cerrar conexiones es tema de otro comando aún no implementado (7.2). Trunca query a 100 caracteres citando SECURITY.md sección 4.2 (context flood) como justificación, y pide presentar el resultado como tabla markdown. Verificado por mí leyendo el archivo completo (no solo el reporte del subagente): confirmado que la única sentencia SQL del archivo es el SELECT citado, sin INSERT/UPDATE/DELETE/DROP/ALTER en ningún bloque de código, y que pg_terminate_backend/pg_cancel_backend aparecen únicamente dentro de frases de advertencia que prohíben su uso."
         },
         {
           "id": "7.2-comando-proponer-cierre",
