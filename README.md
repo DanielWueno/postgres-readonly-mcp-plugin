@@ -1,4 +1,4 @@
-# postgres-readonly-mcp
+﻿# postgres-readonly-mcp
 
 Plugin de Claude Code que otorga acceso de **solo lectura** a una base
 PostgreSQL, reforzado en dos capas independientes que impiden cualquier
@@ -36,6 +36,44 @@ garantía:
    `--access-mode=restricted`** — rechaza sentencias de escritura y
    `COMMIT`/`ROLLBACK` a nivel de parser SQL, antes de que lleguen a la
    base de datos.
+
+## Qué no hace
+
+- No otorga acceso de escritura bajo ninguna circunstancia: no hay comando ni
+  configuración de este plugin que habilite `INSERT`/`UPDATE`/`DELETE`/`DDL`.
+  Si se necesita escritura, este plugin no es la herramienta adecuada.
+- No impide que el contenido devuelto por un `SELECT` llegue a la conversación
+  con el modelo (ver "Consideraciones de seguridad" más abajo) — solo-lectura
+  no significa datos ocultos.
+- No limita ni reescribe las consultas que el usuario escribe: no agrega
+  `LIMIT` automático ni trunca resultados grandes, así que una consulta sin
+  filtrar puede devolver un volumen de datos considerable.
+- No gestiona ni rota credenciales: la cadena de conexión se configura a mano,
+  como variable de entorno, en la máquina de cada persona; el plugin nunca la
+  pide, la guarda ni la transmite.
+- No crea el rol de solo lectura por sí solo: `/postgres-readonly-mcp:crear-rol`
+  solo imprime el SQL — hace falta correrlo a mano contra la base con un
+  usuario administrador.
+
+## Cómo comprobar que funciona
+
+Para verificar, contra una base real, que el modo de solo lectura efectivamente
+bloquea escrituras:
+
+1. Sembrar una conexión de prueba: `/postgres-readonly-mcp:sembrar prueba` y
+   configurar la variable de entorno que imprime, apuntando a una base de
+   pruebas (no producción).
+2. Desde Claude Code, con el servidor `pg-ro-prueba` activo, pedir una consulta
+   de lectura simple, por ejemplo `SELECT 1` o `SELECT * FROM information_schema.tables LIMIT 5`
+   — debe devolver resultados normalmente.
+3. Pedir luego una escritura, por ejemplo
+   `INSERT INTO alguna_tabla DEFAULT VALUES` o `CREATE TABLE prueba_ro (id int)`
+   — debe ser rechazada, ya sea por `postgres-mcp --access-mode=restricted`
+   (a nivel de parser, antes de tocar la base) o por el rol de PostgreSQL si el
+   parser la dejara pasar (`permission denied`).
+4. Si algo no funciona en el camino, correr `/postgres-readonly-mcp:doctor`
+   para diagnosticar si falta `uv`/`uvx` en `PATH` o si la variable de entorno
+   esperada no está seteada en la sesión actual.
 
 ## Requisitos
 
