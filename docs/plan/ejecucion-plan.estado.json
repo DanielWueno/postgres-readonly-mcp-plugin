@@ -394,6 +394,55 @@
           "rollback": "El tag se puede borrar del remoto (git push --delete) si se creó sobre el commit equivocado; no afecta código."
         }
       ]
+    },
+    {
+      "ola": 7,
+      "nombre": "Diagnóstico de conexiones activas: solo lectura de pg_stat_activity, y cualquier acción de cierre queda como propuesta de SQL, nunca ejecutada por el plugin",
+      "criterio_de_entrada": "Ola 6 cerrada: v2.x publicado y taggeado con la ola 4 y las correcciones de documentación de la ola 5 ya mergeadas.",
+      "criterio_de_salida": "Un usuario con una conexión pg-ro-<alias> ya sembrada puede, sin salir del chat, listar las conexiones activas de esa base (pg_stat_activity) filtradas de forma segura, y pedir que se le proponga el SQL para cerrar una en particular -- ese SQL se imprime en el chat para que el usuario lo corra él mismo con credenciales propias, el plugin jamás lo ejecuta ni requiere que el rol de solo lectura tenga permiso para terminar backends. La garantía de las dos capas de solo lectura (rol SQL + postgres-mcp --access-mode=restricted) se mantiene intacta: esta ola no le agrega ningún permiso de escritura al rol ni un modo distinto al servidor MCP.",
+      "items": [
+        {
+          "id": "7.1-comando-conexiones-activas",
+          "titulo": "commands/conexiones.md expone /postgres-readonly-mcp:conexiones, que instruye al modelo a correr, sobre la conexión pg-ro-<alias> ya sembrada y elegida por el usuario, un SELECT de solo lectura contra pg_stat_activity (pid, usename, application_name, client_addr, state, query_start, y una versión truncada de la query en curso para no volcar el contenido completo de datos sensibles al chat) y a presentarlo en una tabla legible",
+          "modelo": "sonnet",
+          "esfuerzo": "medium",
+          "multiagente": false,
+          "verificacion": "El comando existe, pide al usuario qué alias pg-ro-<alias> usar (nunca asume uno), y la consulta que instruye a correr es estrictamente SELECT sobre pg_stat_activity -- ningún verbo de escritura ni llamada a función con efecto (pg_terminate_backend, pg_cancel_backend) en este comando. La instrucción trunca o limita explícitamente el campo de la query en curso (ej. primeros N caracteres) para reducir exposición de datos sensibles en el chat, siguiendo el mismo criterio que la sección de 'context flood' de SECURITY.md (4.2).",
+          "horas_maquina": 0.15,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Diseñar qué columnas mostrar y cómo truncar la query en curso sin perder utilidad diagnóstica es una decisión de criterio, no una plantilla mecánica.",
+          "archivos": "commands/conexiones.md (nuevo)",
+          "rollback": "Borrar commands/conexiones.md."
+        },
+        {
+          "id": "7.2-comando-proponer-cierre",
+          "titulo": "commands/proponer-cierre.md expone /postgres-readonly-mcp:proponer-cierre <pid>, que imprime en el chat el SQL (SELECT pg_terminate_backend(<pid>)) necesario para cerrar esa conexión puntual, explicando en lenguaje llano que el rol de solo lectura de este plugin NO tiene permiso para ejecutarlo y que debe correrlo el usuario con credenciales propias (administrador o con permiso explícito) fuera de esta conexión de solo lectura -- el comando nunca ejecuta ni intenta ejecutar ese SQL por su cuenta",
+          "modelo": "sonnet",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "El comando existe, pide únicamente un pid (nunca credenciales ni una URI), imprime el SQL propuesto como texto y una advertencia explícita de que el plugin no lo ejecuta y que el rol de solo lectura sembrado con este plugin no tiene permiso para correrlo. No invoca ninguna conexión MCP para ejecutar la sentencia -- es solo texto generado.",
+          "verificacion_comando": "[ -f commands/proponer-cierre.md ] && grep -qi 'pg_terminate_backend' commands/proponer-cierre.md && grep -qi 'no lo ejecuta\\|nunca lo ejecuta\\|no se ejecuta' commands/proponer-cierre.md",
+          "horas_maquina": 0.1,
+          "estado": "pendiente",
+          "por_que_este_modelo": "El límite de qué NO debe hacer el comando (nunca ejecutar, solo proponer) es una decisión de diseño de seguridad, igual que crear-rol.md (2.5).",
+          "archivos": "commands/proponer-cierre.md (nuevo)",
+          "rollback": "Borrar commands/proponer-cierre.md."
+        },
+        {
+          "id": "7.3-doc-conexiones-y-cierre",
+          "titulo": "README.md y SECURITY.md documentan los dos comandos nuevos (conexiones, proponer-cierre), aclarando explícitamente que no agregan ningún permiso de escritura al rol de solo lectura ni cambian el --access-mode de postgres-mcp -- la garantía de las dos capas descrita en la ola 1 sigue intacta",
+          "modelo": "sonnet",
+          "esfuerzo": "low",
+          "multiagente": false,
+          "verificacion": "README.md lista los dos comandos nuevos en la sección de comandos disponibles, con el mismo registro formal que el resto. SECURITY.md aclara, en una sección distinguible, que proponer-cierre solo genera texto (igual que crear-rol) y que ningún comando de esta ola ejecuta pg_terminate_backend ni ninguna otra función con efecto por su cuenta.",
+          "verificacion_comando": "grep -qi 'proponer-cierre' README.md && grep -qi 'proponer-cierre' SECURITY.md",
+          "horas_maquina": 0.1,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Redacción de documentación con el mismo criterio editorial que el resto del README/SECURITY.md -- no es mecánico.",
+          "archivos": "README.md, SECURITY.md",
+          "rollback": "git revert del commit de este ítem."
+        }
+      ]
     }
   ]
 }
