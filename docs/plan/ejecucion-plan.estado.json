@@ -379,10 +379,12 @@
           "multiagente": false,
           "verificacion": "CHANGELOG.md tiene una sección nueva con la fecha del día en que se cierra el ítem, listando los cambios de 4.1-4.4 en lenguaje llano (qué se documentó, qué se corrigió en sembrar.js); plugin.json.version queda en la versión nueva acordada (SemVer: menor si 4.4 solo agrega una advertencia sin romper compatibilidad de .mcp.json existentes, ver criterio en la skill plugin-conventions); en el momento de cerrar este ítem, todos los ítems 4.1-4.4 ya están hecho y mergeados a main.",
           "horas_maquina": 0.02,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-10",
           "por_que_este_modelo": "Redacción breve siguiendo Keep a Changelog -- no requiere opus.",
           "archivos": "CHANGELOG.md, .claude-plugin/plugin.json",
-          "rollback": "git revert del commit de este ítem."
+          "rollback": "git revert del commit de este ítem.",
+          "resultado": "Se agregó la sección '## [2.1.0] — 2026-09-10' en CHANGELOG.md describiendo lo agregado en la ola 4 (documentación en SECURITY.md de efectos secundarios/agotamiento de recursos, context flood, advertencia de caracteres especiales en README/sembrar.md/ayuda.md, y detección de colisión de alias en sembrar.js), y se cambió \"version\" a \"2.1.0\" (SemVer minor, ya que 4.4 solo agrega una validación que bloquea un caso antes silencioso, sin romper compatibilidad de .mcp.json existentes) en .claude-plugin/plugin.json. Verificado con el verificacion_comando literal (equivalente PowerShell Select-String -SimpleMatch): CHANGELOG.md contiene '2.1.0' -> True; plugin.json contiene '\"version\": \"2.1.0\"' -> True. Todos los ítems 4.1-4.4 ya estaban hecho y mergeados a main antes de abrir este ítem."
         },
         {
           "id": "6.2-tag-release-ola4",

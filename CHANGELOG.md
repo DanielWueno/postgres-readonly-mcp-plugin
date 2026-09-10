@@ -3,6 +3,34 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/).
 
+## [2.1.0] — 2026-09-10
+
+### Agregado
+
+- `SECURITY.md` documenta que el modo de solo lectura no impide que un
+  `SELECT` dispare funciones con efectos secundarios (`SECURITY DEFINER`,
+  `pg_notify`, procedimientos que auditan o notifican), ni que una consulta
+  analítica pesada agote CPU o memoria antes de llegar al
+  `statement_timeout` configurado por `crear-rol` -- ninguno de los dos
+  riesgos es mitigable desde este plugin porque dependen del parser interno
+  de `postgres-mcp` (paquete externo).
+- `SECURITY.md` documenta el riesgo de saturación de contexto ("context
+  flood"): el plugin no impone `LIMIT` ni trunca el tamaño de la respuesta
+  de una consulta, por lo que un `SELECT` sin filtrar sobre una tabla
+  grande puede saturar la ventana de contexto del modelo y el consumo de
+  tokens de la sesión.
+- `README.md`, `commands/sembrar.md` y `commands/ayuda.md` advierten, en
+  el paso de exportar la variable de entorno con `$env:`/`setx`, que una
+  contraseña con caracteres especiales (`@ : / # %` espacio o comillas)
+  puede romper el parseo de la URI `postgresql://` o corromperse al pasar
+  por `setx`, y dan el paso concreto para evitarlo (URL-encodear la
+  contraseña o envolver el valor completo entre comillas).
+- `scripts/sembrar.js` detecta cuando el nombre de variable de entorno
+  derivado de un alias nuevo ya está en uso por otra entrada `pg-ro-*`
+  existente bajo un alias distinto, y bloquea la siembra con un mensaje
+  explícito en vez de crear en silencio dos servidores que terminarían
+  compartiendo el mismo secreto.
+
 ## [2.0.0] — 2026-09-09
 
 ### Roto

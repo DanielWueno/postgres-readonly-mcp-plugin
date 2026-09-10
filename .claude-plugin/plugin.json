@@ -1,7 +1,7 @@
 {
   "name": "postgres-readonly-mcp",
   "displayName": "Postgres Read-Only MCP",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Acceso MCP de solo lectura a bases PostgreSQL, con proteccion en dos capas: rol de base de datos con GRANT SELECT unicamente + servidor MCP en modo restringido (bloquea escrituras a nivel de parser SQL).",
   "author": {
     "name": "Daniel Wueno BP"
