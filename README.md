@@ -203,7 +203,33 @@ como primera sospechosa de un fallo, porque sin ella la conexión queda
 apuntando literalmente al texto `${NOMBRE_DE_VARIABLE}` en vez de a una
 base real.
 
-### 7. `/postgres-readonly-mcp:ayuda`
+### 7. `/postgres-readonly-mcp:conexiones [alias]`
+
+Muestra, en una tabla dentro del chat, las conexiones activas en
+`pg_stat_activity` de la base asociada a un `pg-ro-<alias>` ya sembrado en
+el proyecto actual: `pid`, `usename`, `application_name`, `client_addr`,
+`state`, `query_start` y una vista previa de la consulta en curso
+truncada a 100 caracteres (`LEFT(query, 100)`). Es un comando puramente de
+diagnóstico de lectura: corre un único `SELECT` sobre `pg_stat_activity` a
+través de la conexión MCP ya sembrada y no cierra, cancela ni modifica
+ninguna conexión — nunca invoca `pg_terminate_backend` ni
+`pg_cancel_backend`. Si no se indica un alias y hay más de uno sembrado,
+pregunta cuál usar antes de correr la consulta.
+
+### 8. `/postgres-readonly-mcp:proponer-cierre <pid>`
+
+Genera, como texto impreso en el chat, el SQL `SELECT
+pg_terminate_backend(<pid>);` para cerrar una conexión puntual
+identificada por su `pid` (por ejemplo, uno visto en la tabla de
+`/postgres-readonly-mcp:conexiones`). Este comando **nunca lo ejecuta**: no
+abre ninguna conexión MCP ni corre ningún script Node, solo imprime la
+sentencia junto con una advertencia explícita de que el rol de solo
+lectura sembrado por este plugin no tiene permiso para ejecutar
+`pg_terminate_backend`, y de que cerrar la conexión de verdad requiere que
+el usuario corra ese SQL él mismo, con credenciales propias de
+administrador, fuera de esta conexión de solo lectura.
+
+### 9. `/postgres-readonly-mcp:ayuda`
 
 Resume, dentro del propio chat, los comandos disponibles y el orden
 recomendado para usarlos, sin necesidad de salir a leer este README.
