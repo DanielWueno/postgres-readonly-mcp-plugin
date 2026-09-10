@@ -67,6 +67,30 @@ function main() {
     config.mcpServers = {};
   }
 
+  // Deteccion de colision de variable de entorno: dos alias distintos
+  // pueden sanitizar al mismo token (ej. "prod" y "prod!" -> "PROD"),
+  // y hoy nada impide que compartan sin querer el mismo secreto. Se
+  // busca otra entrada pg-ro-* (distinta a la que estamos por escribir,
+  // para no bloquear un re-sembrado legitimo del mismo alias) cuyo
+  // DATABASE_URI ya apunte a la misma variable.
+  const expectedRef = `\${${envVar}}`;
+  for (const [existingName, existingServer] of Object.entries(
+    config.mcpServers
+  )) {
+    if (existingName === serverName) continue;
+    if (!existingName.startsWith("pg-ro-")) continue;
+    const existingRef = existingServer && existingServer.env && existingServer.env.DATABASE_URI;
+    if (existingRef === expectedRef) {
+      fail(
+        `Colision de variable de entorno: "${existingName}" ya usa ${envVar}. ` +
+          `Sembrar "${serverName}" con el mismo alias sanitizado haria que ambas conexiones ` +
+          "compartan el mismo secreto sin que lo sepas. No se escribio nada en " +
+          `${mcpJsonPath}. Si de verdad queres compartir la variable, resembra con un alias ` +
+          "que no colisione, o renombra la variable manualmente."
+      );
+    }
+  }
+
   config.mcpServers[serverName] = {
     command: "uvx",
     args: [
