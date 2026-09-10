@@ -431,10 +431,12 @@
           "verificacion": "El comando existe, pide únicamente un pid (nunca credenciales ni una URI), imprime el SQL propuesto como texto y una advertencia explícita de que el plugin no lo ejecuta y que el rol de solo lectura sembrado con este plugin no tiene permiso para correrlo. No invoca ninguna conexión MCP para ejecutar la sentencia -- es solo texto generado.",
           "verificacion_comando": "[ -f commands/proponer-cierre.md ] && grep -qi 'pg_terminate_backend' commands/proponer-cierre.md && grep -qi 'no lo ejecuta\\|nunca lo ejecuta\\|no se ejecuta' commands/proponer-cierre.md",
           "horas_maquina": 0.1,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-10",
           "por_que_este_modelo": "El límite de qué NO debe hacer el comando (nunca ejecutar, solo proponer) es una decisión de diseño de seguridad, igual que crear-rol.md (2.5).",
           "archivos": "commands/proponer-cierre.md (nuevo)",
-          "rollback": "Borrar commands/proponer-cierre.md."
+          "rollback": "Borrar commands/proponer-cierre.md.",
+          "resultado": "Creado commands/proponer-cierre.md: expone /postgres-readonly-mcp:proponer-cierre <pid>. Pide el pid explícitamente si no vino en $ARGUMENTS o no es numérico (nunca lo asume). Imprime únicamente el SQL `SELECT pg_terminate_backend(<pid>);` como texto, junto con advertencia explícita de que el plugin no lo ejecuta, que el rol de solo lectura sembrado no tiene permiso para correrlo, y que el usuario debe correrlo él mismo con credenciales de administrador fuera de esta conexión. No invoca ningún servidor MCP ni script Node -- es solo una plantilla de texto para el modelo, igual que crear-rol.md. Verificado con el verificacion_comando literal del ítem (equivalente PowerShell Select-String -Quiet): exists=True, hasTerminate=True (coincide 'pg_terminate_backend'), hasNoExec=True (coincide 'no lo ejecuta')."
         },
         {
           "id": "7.3-doc-conexiones-y-cierre",
