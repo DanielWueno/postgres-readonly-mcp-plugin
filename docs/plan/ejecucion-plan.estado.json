@@ -333,10 +333,12 @@
           "multiagente": false,
           "verificacion": "Sembrando dos alias distintos que sanitizan al mismo token de variable (ej. 'prod' y 'prod!', ambos derivan PGRO_<PROYECTO>_PROD), la segunda siembra avisa explícitamente sobre la colisión de nombre de variable antes de escribir, en vez de crear dos entradas mcpServers silenciosamente apuntando a la misma variable de entorno. Re-sembrar el mismo alias (no hay colisión real: es la misma entrada) sigue actualizando esa entrada sin verse afectado por este cambio, igual que hoy.",
           "horas_maquina": 0.1,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-10",
           "por_que_este_modelo": "Requiere decidir la forma del aviso (bloquear vs. advertir y continuar) y no romper el caso ya cubierto de re-sembrar el mismo alias -- criterio de diseño chico pero real.",
           "archivos": "scripts/sembrar.js",
-          "rollback": "git revert del commit de este ítem; sembrar.js vuelve a no detectar colisiones."
+          "rollback": "git revert del commit de este ítem; sembrar.js vuelve a no detectar colisiones.",
+          "resultado": "scripts/sembrar.js ahora detecta, antes de escribir, si el envVar calculado ya está en uso por otra entrada pg-ro-* existente (comparando env.DATABASE_URI === \"${envVar}\"), excluyendo explícitamente la entrada con el mismo serverName (re-sembrado legítimo del mismo alias). Ante colisión, bloquea con exit 1 y mensaje explícito nombrando el alias existente que ya usa esa variable, sin escribir nada en .mcp.json -- se eligió bloquear (no advertir y seguir) porque sembrar en silencio dos servidores con el mismo secreto es exactamente el bug que este ítem previene. Verificado por mí (no solo por el subagente que lo implementó), en un directorio de prueba fuera del repo (D:\\...\\Temp\\pgro-44-verify2, borrado al cerrar): (1) sembrar 'prod-1' -> exit 0, crea pg-ro-prod-1 con PGRO_..._PROD_1; (2) sembrar 'prod_1' (mismo token sanitizado) -> exit 1, mensaje de colisión nombrando pg-ro-prod-1, y .mcp.json quedó con SOLO la entrada original, sin tocar; (3) re-sembrar 'prod-1' (mismo alias) -> exit 0, actualiza su propia entrada sin disparar la detección."
         }
       ]
     },
