@@ -342,12 +342,33 @@
     },
     {
       "ola": 5,
-      "nombre": "Publicación: bump de versión y tag, al cierre de esta tanda",
+      "nombre": "Auditoría de documentación contra el estándar de plugin-conventions, antes de publicar",
       "criterio_de_entrada": "Ola 4 cerrada: todos sus ítems (4.1-4.4) hecho y mergeados a main.",
-      "criterio_de_salida": "CHANGELOG.md y plugin.json declaran la versión nueva que agrupa todo lo mergeado en la ola 4, y existe un tag inmutable sobre ese commit de main -- siguiendo la política de versionado ya explícita en la skill plugin-conventions (bump al final de la tanda, nunca ítem por ítem; ver items 3.4/3.5 de este mismo ledger como precedente).",
+      "criterio_de_salida": "README.md, SECURITY.md, CHANGELOG.md y el resto de la documentación del repo reflejan fielmente el estado real del código (nada de lo que afirman deja de ser cierto ni deja de tener respaldo verificable en el propio repo), y cumplen el estándar de la skill plugin-conventions (registro de archivos, encoding, registro profesional sin anécdota, cobertura mínima del README, estado de la entrada en el marketplace dweno-forge) -- de forma que la ola 6 (publicación) parta de documentación correcta, no de documentación heredada de olas anteriores sin revisar.",
       "items": [
         {
-          "id": "5.1-changelog-version-bump-ola4",
+          "id": "5.1-auditoria-plugin-conventions",
+          "titulo": "Auditar README.md, SECURITY.md, CHANGELOG.md, LICENSE y la entrada de este plugin en dweno-forge/.claude-plugin/marketplace.json contra el checklist de la skill plugin-conventions, corrigiendo en este mismo repo lo que no cumpla: encoding roto (ya detectado: CHANGELOG.md tiene mojibake -- 'â€”' en vez de '—'), afirmaciones sin respaldo verificable en el código actual, registro/idioma inconsistente entre archivos, y huecos de cobertura del README (qué problema resuelve, qué NO hace, cómo funciona, cómo instalarlo con la vía de menor fricción primero, cómo comprobar que funciona)",
+          "modelo": "sonnet",
+          "esfuerzo": "medium",
+          "multiagente": false,
+          "verificacion": "CHANGELOG.md no contiene bytes de mojibake (re-guardado en UTF-8 real, sin BOM roto). Cada uno de los cinco puntos de cobertura del README (qué problema resuelve, qué NO hace, cómo funciona, instalación con la vía de menor fricción primero, cómo comprobar que funciona) tiene una sección o párrafo identificable que lo cubre. SECURITY.md nombra el riesgo real de este plugin concreto (no genérico) y dice explícitamente qué no cuenta como vulnerabilidad. LICENSE existe como archivo. Se reporta el estado encontrado de la entrada en dweno-forge/.claude-plugin/marketplace.json (existe, con source url https:// explícito, con el name correcto) -- si falta o está mal, se anota como ítem nuevo en su lugar por id, no se edita otro repo sin confirmación explícita del autor. Ninguna afirmación nueva se agrega sin que el código de las olas 1-4 ya la respalde.",
+          "horas_maquina": 0.3,
+          "estado": "pendiente",
+          "por_que_este_modelo": "Requiere criterio editorial y de auditoría contra un estándar (qué cuenta como hueco, qué cuenta como riesgo real vs. genérico) -- no es un chequeo mecánico de un solo archivo.",
+          "archivos": "README.md, SECURITY.md, CHANGELOG.md (posible re-encode), LICENSE (verificación de existencia, no de contenido)",
+          "rollback": "git revert del commit de este ítem."
+        }
+      ]
+    },
+    {
+      "ola": 6,
+      "nombre": "Publicación: bump de versión y tag, al cierre de esta tanda",
+      "criterio_de_entrada": "Ola 5 cerrada: documentación auditada contra plugin-conventions y correcciones mergeadas a main.",
+      "criterio_de_salida": "CHANGELOG.md y plugin.json declaran la versión nueva que agrupa todo lo mergeado en la ola 4 (y las correcciones de documentación de la ola 5), y existe un tag inmutable sobre ese commit de main -- siguiendo la política de versionado ya explícita en la skill plugin-conventions (bump al final de la tanda, nunca ítem por ítem; ver items 3.4/3.5 de este mismo ledger como precedente).",
+      "items": [
+        {
+          "id": "6.1-changelog-version-bump-ola4",
           "titulo": "CHANGELOG.md tiene una entrada nueva describiendo lo agregado en la ola 4 (documentación de riesgos residuales: side-effects/DoS, context flood, caracteres especiales en setx; y la detección de colisión de alias en sembrar.js) y plugin.json sube de versión acorde a SemVer -- se cierra al final, con todo lo demás de la ola 4 ya mergeado a main, nunca antes",
           "modelo": "sonnet",
           "esfuerzo": "low",
@@ -360,8 +381,8 @@
           "rollback": "git revert del commit de este ítem."
         },
         {
-          "id": "5.2-tag-release-ola4",
-          "titulo": "Existe un tag inmutable postgres-readonly-mcp--vX.Y.Z (la versión que fija 5.1) sobre el commit de main que cierra ese ítem, siguiendo la convención de tags con nombre de proyecto de los demás repos del autor",
+          "id": "6.2-tag-release-ola4",
+          "titulo": "Existe un tag inmutable postgres-readonly-mcp--vX.Y.Z (la versión que fija 6.1) sobre el commit de main que cierra ese ítem, siguiendo la convención de tags con nombre de proyecto de los demás repos del autor",
           "modelo": "haiku",
           "esfuerzo": "low",
           "multiagente": false,
