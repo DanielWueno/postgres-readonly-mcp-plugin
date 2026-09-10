@@ -447,10 +447,12 @@
           "verificacion": "README.md lista los dos comandos nuevos en la sección de comandos disponibles, con el mismo registro formal que el resto. SECURITY.md aclara, en una sección distinguible, que proponer-cierre solo genera texto (igual que crear-rol) y que ningún comando de esta ola ejecuta pg_terminate_backend ni ninguna otra función con efecto por su cuenta.",
           "verificacion_comando": "grep -qi 'proponer-cierre' README.md && grep -qi 'proponer-cierre' SECURITY.md",
           "horas_maquina": 0.1,
-          "estado": "pendiente",
+          "estado": "hecho",
+          "fecha_inicio": "2026-09-10",
           "por_que_este_modelo": "Redacción de documentación con el mismo criterio editorial que el resto del README/SECURITY.md -- no es mecánico.",
           "archivos": "README.md, SECURITY.md",
-          "rollback": "git revert del commit de este ítem."
+          "rollback": "git revert del commit de este ítem.",
+          "resultado": "README.md gana las entradas '7. /postgres-readonly-mcp:conexiones [alias]' y '8. /postgres-readonly-mcp:proponer-cierre <pid>' en la sección de comandos disponibles (ayuda renumerada a 9), con el mismo registro formal y nivel de detalle que las entradas existentes, confirmado contra el contenido real de commands/conexiones.md y commands/proponer-cierre.md. SECURITY.md gana la sección '## conexiones y proponer-cierre: ningún efecto ejecutado por el plugin', que sigue la misma convención que la sección de crear-rol (nunca ejecuta SQL), aclara que ninguno de los dos comandos invoca pg_terminate_backend/pg_cancel_backend ni otra función con efecto, y que no agregan permisos de escritura al rol de solo lectura ni modifican --access-mode=restricted. Verificado con el verificacion_comando literal del ítem (equivalente PowerShell Select-String -Quiet): README=True, SECURITY=True. Revisado el diff completo de ambos archivos antes de cerrar: no se agregó ninguna afirmación sin respaldo en el código actual."
         }
       ]
     }

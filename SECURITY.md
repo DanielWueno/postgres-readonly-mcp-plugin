@@ -169,6 +169,36 @@ pin a una versión corregida (o fijar un rango que la excluya) en todos los
 lugares donde aparece: este documento, el README y `commands/sembrar.md` (que
 es de donde sale el `.mcp.json` generado).
 
+## `conexiones` y `proponer-cierre`: ningún efecto ejecutado por el plugin
+
+Estos dos comandos amplían el diagnóstico del plugin sin tocar la garantía de
+solo lectura descrita arriba:
+
+- `/postgres-readonly-mcp:conexiones` corre un único `SELECT` de solo lectura
+  sobre `pg_stat_activity` a través de la conexión `pg-ro-<alias>` ya
+  sembrada. No ejecuta, ni permite ejecutar desde el propio comando,
+  `pg_terminate_backend` ni `pg_cancel_backend`, ni ninguna otra función con
+  efecto sobre la conexión de otro proceso.
+- `/postgres-readonly-mcp:proponer-cierre <pid>` sigue la misma convención que
+  `/postgres-readonly-mcp:crear-rol`: **nunca ejecuta SQL ni se conecta a
+  ninguna base.** Solo imprime en el chat el texto `SELECT
+  pg_terminate_backend(<pid>);` junto con la advertencia explícita de que el
+  usuario debe correr esa sentencia por su cuenta, con credenciales propias de
+  administrador, fuera de la conexión de solo lectura sembrada por este
+  plugin. Si en algún momento este comando ejecutara esa sentencia
+  directamente o abriera una conexión de red, es una vulnerabilidad real, por
+  el mismo motivo que aplica a `crear-rol` más arriba.
+
+Ninguno de los dos comandos agrega permisos de escritura al rol de solo
+lectura ni modifica el `--access-mode=restricted` con el que se invoca
+`postgres-mcp`: la garantía de dos capas (rol SQL de solo lectura más
+`postgres-mcp` en modo restringido) sigue siendo la misma para toda conexión
+`pg-ro-<alias>`, la use `conexiones`, `proponer-cierre` o cualquier otro
+comando de este plugin. Un reporte de que alguno de los dos ejecuta
+`pg_terminate_backend`, `pg_cancel_backend` u otra función con efecto, o de
+que el rol sembrado gana capacidad de escritura a través de estos comandos,
+es una vulnerabilidad real.
+
 ## Qué no es una vulnerabilidad
 
 - **Que el rol de solo lectura no tenga fecha de caducidad si quien lo creó no
